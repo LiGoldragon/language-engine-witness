@@ -10,7 +10,7 @@ description="Process-level acceptance witness for the minimal language engine"
 logos-engine={git="https://github.com/LiGoldragon/logos-engine.git",rev="0e8479321bf83151ec36a4e92c66ea040c5c1d50"}
 name-table={git="https://github.com/LiGoldragon/name-table.git",rev="c3237f77c087e6feab49d6cf34971cebc14a11e6"}
 nomos-engine={git="https://github.com/LiGoldragon/nomos-engine.git",rev="f976392f32148942d38209abc9a1c5db81334036"}
-schema-engine={git="https://github.com/LiGoldragon/schema-engine.git",rev="ec620a37a52dc64575e555622fd4814e21041f6c"}
+schema-engine={git="https://github.com/LiGoldragon/schema-engine.git",rev="1423c3d7e773d6714d2edc9b3ed84ce2c3811bf0"}
 sema-storage={git="https://github.com/LiGoldragon/sema-storage.git",rev="5c5c8a6718dc83ebb5e850c6e43d4d04f1bd5ac2"}
 signal-logos={git="https://github.com/LiGoldragon/signal-logos.git",rev="005bb88d7c123274893412687b56c1296c1e3705"}
 signal-nomos={git="https://github.com/LiGoldragon/signal-nomos.git",rev="7194a5ea91159520cad70e3be11df3044c3675ad"}

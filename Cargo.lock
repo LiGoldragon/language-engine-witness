@@ -631,7 +631,7 @@ checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 [[package]]
 name = "schema-engine"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/schema-engine.git?rev=ec620a37a52dc64575e555622fd4814e21041f6c#ec620a37a52dc64575e555622fd4814e21041f6c"
+source = "git+https://github.com/LiGoldragon/schema-engine.git?rev=1423c3d7e773d6714d2edc9b3ed84ce2c3811bf0#1423c3d7e773d6714d2edc9b3ed84ce2c3811bf0"
 dependencies = [
  "core-schema",
  "kameo",
