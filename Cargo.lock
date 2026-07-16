@@ -456,7 +456,7 @@ dependencies = [
 [[package]]
 name = "nota"
 version = "0.8.0"
-source = "git+https://github.com/LiGoldragon/nota.git?rev=18e2e8d0#18e2e8d0dba37e9e84045af3608585b51f6e3b36"
+source = "git+https://github.com/LiGoldragon/nota.git?rev=7d0651a0e098efea5fe2578cb06d88e009d40ff0#7d0651a0e098efea5fe2578cb06d88e009d40ff0"
 dependencies = [
  "nota-derive",
  "rkyv",
@@ -465,7 +465,7 @@ dependencies = [
 [[package]]
 name = "nota-derive"
 version = "0.4.0"
-source = "git+https://github.com/LiGoldragon/nota.git?rev=18e2e8d0#18e2e8d0dba37e9e84045af3608585b51f6e3b36"
+source = "git+https://github.com/LiGoldragon/nota.git?rev=7d0651a0e098efea5fe2578cb06d88e009d40ff0#7d0651a0e098efea5fe2578cb06d88e009d40ff0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -632,7 +632,7 @@ checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 [[package]]
 name = "schema-engine"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/schema-engine.git?rev=fee414ca4dd179eeedea4de7a7d05411e7e66721#fee414ca4dd179eeedea4de7a7d05411e7e66721"
+source = "git+https://github.com/LiGoldragon/schema-engine.git?rev=3c107c4c7dff8904338c70de8d4e00ed62543a20#3c107c4c7dff8904338c70de8d4e00ed62543a20"
 dependencies = [
  "core-schema",
  "kameo",
@@ -648,7 +648,7 @@ dependencies = [
 [[package]]
 name = "schema-language"
 version = "0.2.0"
-source = "git+https://github.com/LiGoldragon/schema-language.git?rev=41a7b257dddbcaebf151a053c6fd43324a2a8e39#41a7b257dddbcaebf151a053c6fd43324a2a8e39"
+source = "git+https://github.com/LiGoldragon/schema-language.git?rev=4270fbdad5318518291829c2f08b22090e833182#4270fbdad5318518291829c2f08b22090e833182"
 dependencies = [
  "blake3",
  "nota",
