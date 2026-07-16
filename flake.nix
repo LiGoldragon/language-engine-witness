@@ -16,7 +16,8 @@
         pkgs = import nixpkgs { inherit system; };
         rust = rust-build.lib.${system}.fromPkgs pkgs;
         inherit (rust) craneLib toolchain;
-        src = rust.cleanSource { root = ./.; };
+        # The acceptance fixture is a .schema file; preserve non-Rust test data.
+        src = pkgs.lib.cleanSource ./.;
         commonArguments = { inherit src; strictDeps = true; };
         cargoArtifacts = craneLib.buildDepsOnly commonArguments;
       in
