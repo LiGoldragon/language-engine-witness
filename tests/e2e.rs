@@ -1,6 +1,3 @@
-use signal_sema_storage::{
-    DeclarationRoot, DocumentKind, FixtureScope, NameTableBytes, SlotIdentifier,
-};
 use std::{
     fs,
     path::Path,
@@ -8,22 +5,40 @@ use std::{
     thread,
     time::Duration,
 };
+
+use name_table::Identifier;
+use signal_sema_storage::{
+    BelongsRelation, DocumentKey, DocumentKind, FamilyDeclaration, FixtureScope, NameTableBytes,
+    NexusActorDeclaration, NexusRoute, NexusRuntimeRoot, OpensRelation, SemaStorageRoot,
+    SignalContractRoot, SlotIdentifier, StreamDeclaration,
+};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::UnixStream,
 };
+
 struct Processes(Vec<Child>);
-impl Drop for Processes {
-    fn drop(&mut self) {
+impl Processes {
+    fn terminate(&mut self) {
         for child in &mut self.0 {
             let _ = child.kill();
             let _ = child.wait();
         }
+        self.0.clear();
     }
 }
-fn spawn(kind: &str, socket: &Path, state: &Path) -> Child {
-    Command::new(env!("CARGO_BIN_EXE_engine-process"))
-        .args([kind, socket.to_str().unwrap(), state.to_str().unwrap()])
+impl Drop for Processes {
+    fn drop(&mut self) {
+        self.terminate();
+    }
+}
+fn spawn(kind: &str, socket: &Path, state: &Path, upstream: Option<&Path>) -> Child {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_engine-process"));
+    command.args([kind, socket.to_str().unwrap(), state.to_str().unwrap()]);
+    if let Some(upstream) = upstream {
+        command.arg(upstream);
+    }
+    command
         .stdout(Stdio::null())
         .stderr(Stdio::inherit())
         .spawn()
@@ -34,11 +49,18 @@ fn wait(path: &Path) {
         if path.exists() {
             return;
         }
-        thread::sleep(Duration::from_millis(25))
+        thread::sleep(Duration::from_millis(25));
     }
-    panic!("socket did not appear: {}", path.display())
+    panic!("socket did not appear: {}", path.display());
 }
-async fn exchange<Q, R>(socket: &Path, q: &Q, encode: impl Fn(&Q) -> Vec<u8>) -> R
+async fn send<Q>(socket: &Path, request: &Q, encode: impl Fn(&Q) -> Vec<u8>) -> UnixStream {
+    let mut stream = UnixStream::connect(socket).await.unwrap();
+    let bytes = encode(request);
+    stream.write_u32_le(bytes.len() as u32).await.unwrap();
+    stream.write_all(&bytes).await.unwrap();
+    stream
+}
+async fn exchange<Q, R>(socket: &Path, request: &Q, encode: impl Fn(&Q) -> Vec<u8>) -> R
 where
     R: rkyv::Archive,
     R::Archived: for<'a> rkyv::bytecheck::CheckBytes<
@@ -51,14 +73,26 @@ where
             >,
         > + rkyv::Deserialize<R, rkyv::api::high::HighDeserializer<rkyv::rancor::Error>>,
 {
-    let mut s = UnixStream::connect(socket).await.unwrap();
-    let b = encode(q);
-    s.write_u32_le(b.len() as u32).await.unwrap();
-    s.write_all(&b).await.unwrap();
-    let n = s.read_u32_le().await.unwrap() as usize;
-    let mut b = vec![0; n];
-    s.read_exact(&mut b).await.unwrap();
-    rkyv::from_bytes::<R, rkyv::rancor::Error>(&b).unwrap()
+    let mut stream = send(socket, request, encode).await;
+    read_value(&mut stream).await
+}
+async fn read_value<R>(stream: &mut UnixStream) -> R
+where
+    R: rkyv::Archive,
+    R::Archived: for<'a> rkyv::bytecheck::CheckBytes<
+            rkyv::rancor::Strategy<
+                rkyv::validation::Validator<
+                    rkyv::validation::archive::ArchiveValidator<'a>,
+                    rkyv::validation::shared::SharedValidator,
+                >,
+                rkyv::rancor::Error,
+            >,
+        > + rkyv::Deserialize<R, rkyv::api::high::HighDeserializer<rkyv::rancor::Error>>,
+{
+    let length = stream.read_u32_le().await.unwrap() as usize;
+    let mut bytes = vec![0; length];
+    stream.read_exact(&mut bytes).await.unwrap();
+    rkyv::from_bytes::<R, rkyv::rancor::Error>(&bytes).unwrap()
 }
 fn declared_name(block: &str) -> Option<String> {
     for line in block.lines() {
@@ -66,7 +100,7 @@ fn declared_name(block: &str) -> Option<String> {
             if let Some(rest) = line.strip_prefix(head) {
                 let name: String = rest
                     .chars()
-                    .take_while(|c| c.is_alphanumeric() || *c == '_')
+                    .take_while(|character| character.is_alphanumeric() || *character == '_')
                     .collect();
                 if !name.is_empty() {
                     return Some(name);
@@ -76,14 +110,18 @@ fn declared_name(block: &str) -> Option<String> {
     }
     None
 }
-fn expected_migrated_rust() -> String {
+fn expected_generated_rust() -> String {
     let names = [
         "Topic",
+        "Topics",
         "Description",
         "Summary",
         "RecordIdentifier",
         "Entry",
         "Query",
+        "RecordSet",
+        "Kind",
+        "Magnitude",
     ];
     let golden = include_str!("fixtures/spirit_generated.rs");
     let mut output = String::new();
@@ -96,33 +134,130 @@ fn expected_migrated_rust() -> String {
     }
     output
 }
-fn support() -> &'static str {
-    "pub type String = std::string::String;\npub type Integer = u64;\n#[derive(rkyv::Archive,rkyv::Serialize,rkyv::Deserialize,Clone,Debug,PartialEq,Eq)] pub struct Topics(pub Vec<Topic>);\n#[derive(rkyv::Archive,rkyv::Serialize,rkyv::Deserialize,Clone,Copy,Debug,PartialEq,Eq)] pub enum Kind { Decision, Principle, Correction, Clarification, Constraint }\n#[derive(rkyv::Archive,rkyv::Serialize,rkyv::Deserialize,Clone,Copy,Debug,PartialEq,Eq)] pub enum Magnitude { Minimum, VeryLow, Low, Medium, High, VeryHigh, Maximum }\n"
+fn scalar_prelude() -> &'static str {
+    "pub type String = std::string::String;\npub type Integer = u64;\n"
 }
 fn write_crate(path: &Path, rust: &str) {
     fs::create_dir_all(path.join("src")).unwrap();
     fs::create_dir_all(path.join("tests")).unwrap();
-    fs::write(path.join("Cargo.toml"),"[package]\nname=\"generated-spirit-subset\"\nversion=\"0.1.0\"\nedition=\"2024\"\n[dependencies]\nrkyv={version=\"0.8\",features=[\"bytecheck\"]}\n[features]\nnota-text=[]\n").unwrap();
-    fs::write(path.join("src/lib.rs"), format!("{}{}", support(), rust)).unwrap();
-    fs::write(path.join("tests/behavior.rs"),"use generated_spirit_subset::{Description,Entry,Query,RecordIdentifier,Summary,Topic};\nfn archived<T:rkyv::Archive>(){}\n#[test] fn shared_public_surface_and_archive_behavior(){archived::<Topic>();archived::<Description>();archived::<Summary>();archived::<RecordIdentifier>();archived::<Entry>();archived::<Query>();for name in [std::any::type_name::<Topic>(),std::any::type_name::<Description>(),std::any::type_name::<Summary>(),std::any::type_name::<RecordIdentifier>(),std::any::type_name::<Entry>(),std::any::type_name::<Query>()]{assert!(name.starts_with(\"generated_spirit_subset::\"));}}\n").unwrap();
+    fs::write(
+        path.join("Cargo.toml"),
+        "[package]\nname=\"generated-spirit\"\nversion=\"0.1.0\"\nedition=\"2024\"\n[dependencies]\nrkyv={version=\"0.8\",features=[\"bytecheck\"]}\n[features]\nnota-text=[]\n",
+    )
+    .unwrap();
+    fs::write(
+        path.join("src/lib.rs"),
+        format!("{}{}", scalar_prelude(), rust),
+    )
+    .unwrap();
+    fs::write(
+        path.join("tests/behavior.rs"),
+        r#"use generated_spirit::{Description,Entry,Kind,Magnitude,Query,RecordIdentifier,RecordSet,Summary,Topic,Topics};
+fn archived<T:rkyv::Archive>(){}
+fn public_fields(entry:&Entry,query:&Query){let _: &Topics=&entry.topics;let _: &Kind=&entry.kind;let _: &Description=&entry.description;let _: &Magnitude=&entry.magnitude;let _: &Topic=&query.topic;let _: &Kind=&query.kind;}
+#[test]
+fn complete_public_surface_and_behavior(){
+ archived::<Topic>();archived::<Topics>();archived::<Description>();archived::<Summary>();archived::<RecordIdentifier>();archived::<Entry>();archived::<Query>();archived::<RecordSet>();archived::<Kind>();archived::<Magnitude>();
+ assert_eq!(Kind::Decision,Kind::Decision);assert_ne!(Kind::Decision,Kind::Constraint);assert_eq!(Magnitude::High,Magnitude::High);
+ let _=public_fields as fn(&Entry,&Query);
+ for name in [std::any::type_name::<Topic>(),std::any::type_name::<Topics>(),std::any::type_name::<Description>(),std::any::type_name::<Summary>(),std::any::type_name::<RecordIdentifier>(),std::any::type_name::<Entry>(),std::any::type_name::<Query>(),std::any::type_name::<RecordSet>(),std::any::type_name::<Kind>(),std::any::type_name::<Magnitude>()]{assert!(name.starts_with("generated_spirit::"));}
 }
+"#,
+    )
+    .unwrap();
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn one_document_crosses_four_processes_and_compiles_independently() {
-    let tmp = tempfile::tempdir().unwrap();
-    let sema = tmp.path().join("sema.sock");
-    let schema = tmp.path().join("schema.sock");
-    let nomos = tmp.path().join("nomos.sock");
-    let logos = tmp.path().join("logos.sock");
-    let db = tmp.path().join("isolated.sema");
-    let mut children = vec![spawn("sema", &sema, &db)];
+async fn one_document_pushes_through_four_processes_and_recovers() {
+    let temporary = tempfile::tempdir().unwrap();
+    let sema = temporary.path().join("sema.sock");
+    let schema = temporary.path().join("schema.sock");
+    let nomos = temporary.path().join("nomos.sock");
+    let logos = temporary.path().join("logos.sock");
+    let database = temporary.path().join("isolated.sema");
+    let mut processes = Processes(vec![spawn("sema", &sema, &database, None)]);
     wait(&sema);
-    children.push(spawn("schema", &schema, &sema));
-    children.push(spawn("nomos", &nomos, &sema));
-    children.push(spawn("logos", &logos, &sema));
+    processes.0.push(spawn("schema", &schema, &sema, None));
     wait(&schema);
+    processes
+        .0
+        .push(spawn("nomos", &nomos, &sema, Some(&schema)));
     wait(&nomos);
+    processes
+        .0
+        .push(spawn("logos", &logos, &sema, Some(&nomos)));
     wait(&logos);
-    let _guard = Processes(children);
+
+    let mut projected = send(
+        &logos,
+        &signal_logos::Request::Subscribe {
+            scope: FixtureScope(1),
+        },
+        |request| signal_logos::encode_request(request).unwrap(),
+    )
+    .await;
+    let subscribed: signal_logos::Reply = read_value(&mut projected).await;
+    assert!(matches!(subscribed, signal_logos::Reply::Subscribed { .. }));
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    for request in [
+        signal_schema::Request::StoreSignalContract {
+            scope: FixtureScope(1),
+            slot: SlotIdentifier(2),
+            root: SignalContractRoot {
+                contract: Identifier::new(0),
+                streams: vec![StreamDeclaration {
+                    stream: Identifier::new(1),
+                }],
+                opens: vec![OpensRelation {
+                    operation: Identifier::new(2),
+                    stream: Identifier::new(1),
+                }],
+                belongs: vec![BelongsRelation {
+                    stream: Identifier::new(1),
+                    contract: Identifier::new(0),
+                }],
+                names: NameTableBytes(Vec::new()),
+            },
+        },
+        signal_schema::Request::StoreNexusRuntime {
+            scope: FixtureScope(1),
+            slot: SlotIdentifier(3),
+            root: NexusRuntimeRoot {
+                actors: vec![
+                    NexusActorDeclaration {
+                        actor: Identifier::new(3),
+                    },
+                    NexusActorDeclaration {
+                        actor: Identifier::new(4),
+                    },
+                ],
+                routes: vec![NexusRoute {
+                    sender: Identifier::new(3),
+                    receiver: Identifier::new(4),
+                }],
+                names: NameTableBytes(Vec::new()),
+            },
+        },
+        signal_schema::Request::StoreSemaStorage {
+            scope: FixtureScope(1),
+            slot: SlotIdentifier(4),
+            root: SemaStorageRoot {
+                families: vec![FamilyDeclaration {
+                    family: Identifier::new(5),
+                    layout_version: 1,
+                }],
+                names: NameTableBytes(Vec::new()),
+            },
+        },
+    ] {
+        let reply: signal_schema::Reply = exchange(&schema, &request, |request| {
+            signal_schema::encode_request(request).unwrap()
+        })
+        .await;
+        assert!(matches!(reply, signal_schema::Reply::Stored(_)));
+    }
+
     let schema_reply: signal_schema::Reply = exchange(
         &schema,
         &signal_schema::Request::IngestTypeSchema {
@@ -130,83 +265,31 @@ async fn one_document_crosses_four_processes_and_compiles_independently() {
             slot: SlotIdentifier(1),
             legacy_text: include_str!("fixtures/spirit-min.schema").into(),
         },
-        |q| signal_schema::encode_request(q).unwrap(),
+        |request| signal_schema::encode_request(request).unwrap(),
     )
     .await;
-    let signal_schema::Reply::Stored(schema_stored) = schema_reply else {
-        panic!("{schema_reply:?}")
-    };
-    for (kind, slot) in [
-        (DocumentKind::SignalContract, 2),
-        (DocumentKind::NexusRuntime, 3),
-        (DocumentKind::SemaStorage, 4),
-    ] {
-        let reply: signal_schema::Reply = exchange(
-            &schema,
-            &signal_schema::Request::StoreDocumentRoot {
-                scope: FixtureScope(1),
-                slot: SlotIdentifier(slot),
-                root: DeclarationRoot {
-                    kind,
-                    declarations: vec![],
-                    names: NameTableBytes(vec![]),
-                },
-            },
-            |q| signal_schema::encode_request(q).unwrap(),
-        )
-        .await;
-        match reply {
-            signal_schema::Reply::Stored(summary) => assert_eq!(summary.key.kind, kind),
-            other => panic!("{other:?}"),
-        }
-    }
-    let nomos_reply: signal_nomos::Reply = exchange(
-        &nomos,
-        &signal_nomos::Request::Transform {
-            scope: FixtureScope(1),
-            schema: schema_stored.hash,
-            output_slot: SlotIdentifier(1),
-        },
-        |q| signal_nomos::encode_request(q).unwrap(),
+    assert!(matches!(schema_reply, signal_schema::Reply::Stored(_)));
+
+    let pushed = tokio::time::timeout(
+        Duration::from_secs(5),
+        read_value::<signal_logos::Reply>(&mut projected),
     )
-    .await;
-    let signal_nomos::Reply::Transformed(logos_stored) = nomos_reply else {
-        panic!("{nomos_reply:?}")
+    .await
+    .expect("Schema → Nomos → Logos push completes without polling");
+    let signal_logos::Reply::Event(event) = pushed else {
+        panic!("expected projection event, got {pushed:?}");
     };
-    let logos_reply: signal_logos::Reply = exchange(
-        &logos,
-        &signal_logos::Request::ProjectRust {
-            scope: FixtureScope(1),
-            logos: logos_stored.hash,
-        },
-        |q| signal_logos::encode_request(q).unwrap(),
-    )
-    .await;
-    let signal_logos::Reply::RustProjected { rust, .. } = logos_reply else {
-        panic!("{logos_reply:?}")
-    };
-    for name in [
-        "Topic",
-        "Description",
-        "Summary",
-        "RecordIdentifier",
-        "Entry",
-        "Query",
-    ] {
-        assert!(
-            rust.contains(&format!("pub struct {name}")),
-            "missing {name}"
-        )
-    }
+    let rust = event.rust;
     assert_eq!(
         rust,
-        expected_migrated_rust(),
-        "the already-free six-item byte-exact witness stays green"
+        expected_generated_rust(),
+        "all ten declarations preserve the free byte-exact witness"
     );
-    let generated = tmp.path().join("generated");
-    let reference = tmp.path().join("reference");
+
+    let generated = temporary.path().join("generated");
+    let reference = temporary.path().join("reference");
     write_crate(&generated, &rust);
-    write_crate(&reference, &expected_migrated_rust());
+    write_crate(&reference, &expected_generated_rust());
     for crate_path in [&generated, &reference] {
         let status = Command::new("cargo")
             .args(["test", "--quiet"])
@@ -215,12 +298,29 @@ async fn one_document_crosses_four_processes_and_compiles_independently() {
             .unwrap();
         assert!(
             status.success(),
-            "independent crate did not compile and pass the shared public-surface test"
+            "generated and reference libraries share manifest, public surface, and behavior"
         );
     }
-    let state = fs::metadata(&db).unwrap();
-    assert!(
-        state.len() > 0,
-        "central Sema state is durable and isolated"
-    );
+
+    processes.terminate();
+    let _ = fs::remove_file(&sema);
+    processes.0.push(spawn("sema", &sema, &database, None));
+    wait(&sema);
+    let recovered: signal_sema_storage::Reply = exchange(
+        &sema,
+        &signal_sema_storage::Request::Fetch {
+            key: DocumentKey {
+                scope: FixtureScope(1),
+                kind: DocumentKind::Logos,
+                slot: SlotIdentifier(1),
+            },
+            version: None,
+        },
+        |request| signal_sema_storage::Wire::encode_request(request).unwrap(),
+    )
+    .await;
+    assert!(matches!(
+        recovered,
+        signal_sema_storage::Reply::Document(Some(_))
+    ));
 }
