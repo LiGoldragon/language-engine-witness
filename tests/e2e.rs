@@ -166,6 +166,7 @@ fn scalar_prelude() -> &'static str {
 fn write_crate(path: &Path, rust: &str, scalar_prelude_required: bool) {
     fs::create_dir_all(path.join("src")).unwrap();
     fs::create_dir_all(path.join("tests")).unwrap();
+    fs::write(path.join("Cargo.lock"), include_str!("../Cargo.lock")).unwrap();
     fs::write(
         path.join("Cargo.toml"),
         "[package]\nname=\"generated-spirit\"\nversion=\"0.1.0\"\nedition=\"2024\"\n[dependencies]\nrkyv={version=\"0.8\",features=[\"bytecheck\"]}\nsignal-frame={git=\"https://github.com/LiGoldragon/signal-frame.git\",rev=\"f46872e7e8edae5264c892443d415a273b231234\",default-features=false}\n[features]\nnota-text=[]\n",
