@@ -101,8 +101,10 @@ fn support() -> &'static str {
 }
 fn write_crate(path: &Path, rust: &str) {
     fs::create_dir_all(path.join("src")).unwrap();
+    fs::create_dir_all(path.join("tests")).unwrap();
     fs::write(path.join("Cargo.toml"),"[package]\nname=\"generated-spirit-subset\"\nversion=\"0.1.0\"\nedition=\"2024\"\n[dependencies]\nrkyv={version=\"0.8\",features=[\"bytecheck\"]}\n[features]\nnota-text=[]\n").unwrap();
     fs::write(path.join("src/lib.rs"), format!("{}{}", support(), rust)).unwrap();
+    fs::write(path.join("tests/behavior.rs"),"use generated_spirit_subset::{Description,Entry,Query,RecordIdentifier,Summary,Topic};\nfn archived<T:rkyv::Archive>(){}\n#[test] fn shared_public_surface_and_archive_behavior(){archived::<Topic>();archived::<Description>();archived::<Summary>();archived::<RecordIdentifier>();archived::<Entry>();archived::<Query>();for name in [std::any::type_name::<Topic>(),std::any::type_name::<Description>(),std::any::type_name::<Summary>(),std::any::type_name::<RecordIdentifier>(),std::any::type_name::<Entry>(),std::any::type_name::<Query>()]{assert!(name.starts_with(\"generated_spirit_subset::\"));}}\n").unwrap();
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn one_document_crosses_four_processes_and_compiles_independently() {
@@ -202,16 +204,20 @@ async fn one_document_crosses_four_processes_and_compiles_independently() {
         "the already-free six-item byte-exact witness stays green"
     );
     let generated = tmp.path().join("generated");
+    let reference = tmp.path().join("reference");
     write_crate(&generated, &rust);
-    let status = Command::new("cargo")
-        .args(["test", "--quiet"])
-        .current_dir(&generated)
-        .status()
-        .unwrap();
-    assert!(
-        status.success(),
-        "independent generated crate did not compile and run shared tests"
-    );
+    write_crate(&reference, &expected_migrated_rust());
+    for crate_path in [&generated, &reference] {
+        let status = Command::new("cargo")
+            .args(["test", "--quiet"])
+            .current_dir(crate_path)
+            .status()
+            .unwrap();
+        assert!(
+            status.success(),
+            "independent crate did not compile and pass the shared public-surface test"
+        );
+    }
     let state = fs::metadata(&db).unwrap();
     assert!(
         state.len() > 0,
