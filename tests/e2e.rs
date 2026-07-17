@@ -148,17 +148,32 @@ where
     socket.request(request, encode).await;
     socket.read_reply().await
 }
+/// The offline lockfile fixture the emitted `generated-spirit` crate builds against.
+/// Its git-dependency revisions are underived here (a separate committed file), so
+/// [`emitted_manifest_and_locked_fixture_pin_the_same_revisions`] guards it against
+/// silently drifting from the manifest's [`NOTA_REV`] / [`SIGNAL_FRAME_REV`] on a
+/// chain re-pin.
+const SPIRIT_LOCK: &str = include_str!("fixtures/spirit-lock.toml");
+
+/// The git revisions the emitted `generated-spirit` crate depends on, single-sourced
+/// here so the manifest [`write_crate`] emits and the lockfile fixture [`SPIRIT_LOCK`]
+/// cannot silently disagree after a chain re-pin. They must track the nota /
+/// signal-frame revisions the daemon closure emits against (the flake's daemon
+/// inputs); a re-pin updates this one place and the lockfile fixture together, and
+/// [`emitted_manifest_and_locked_fixture_pin_the_same_revisions`] fails loudly if the
+/// two drift apart.
+const NOTA_REV: &str = "89dc3c85a9ff96d4e4d53accfd867df672cae5a8";
+const SIGNAL_FRAME_REV: &str = "f46872e7e8edae5264c892443d415a273b231234";
+
 fn write_crate(path: &Path, rust: &str) {
     fs::create_dir_all(path.join("src")).unwrap();
     fs::create_dir_all(path.join("tests")).unwrap();
-    fs::write(
-        path.join("Cargo.lock"),
-        include_str!("fixtures/spirit-lock.toml"),
-    )
-    .unwrap();
+    fs::write(path.join("Cargo.lock"), SPIRIT_LOCK).unwrap();
     fs::write(
         path.join("Cargo.toml"),
-        "[package]\nname=\"generated-spirit\"\nversion=\"0.1.0\"\nedition=\"2024\"\n[dependencies]\nrkyv={version=\"0.8\",features=[\"bytecheck\"]}\nsignal-frame={git=\"https://github.com/LiGoldragon/signal-frame.git\",rev=\"f46872e7e8edae5264c892443d415a273b231234\",default-features=false}\nnota={git=\"https://github.com/LiGoldragon/nota.git\",rev=\"89dc3c85a9ff96d4e4d53accfd867df672cae5a8\",optional=true}\n[features]\ndefault=[]\nnota-text=[\"dep:nota\"]\n",
+        format!(
+            "[package]\nname=\"generated-spirit\"\nversion=\"0.1.0\"\nedition=\"2024\"\n[dependencies]\nrkyv={{version=\"0.8\",features=[\"bytecheck\"]}}\nsignal-frame={{git=\"https://github.com/LiGoldragon/signal-frame.git\",rev=\"{SIGNAL_FRAME_REV}\",default-features=false}}\nnota={{git=\"https://github.com/LiGoldragon/nota.git\",rev=\"{NOTA_REV}\",optional=true}}\n[features]\ndefault=[]\nnota-text=[\"dep:nota\"]\n"
+        ),
     )
     .unwrap();
     // The pipeline now emits the full module head (marker, scalar prelude, NOTA
@@ -179,6 +194,24 @@ fn complete_public_surface_and_behavior(){
 "#,
     )
     .unwrap();
+}
+
+/// The emitted `generated-spirit` manifest and the offline lockfile fixture pin the
+/// same nota and signal-frame revisions. Both manifest revisions are single-sourced
+/// from [`NOTA_REV`] / [`SIGNAL_FRAME_REV`]; this guards the separately-committed
+/// [`SPIRIT_LOCK`] fixture against silently drifting from them on a chain re-pin. A
+/// mismatch fails loudly here — a fast, daemon-free check — instead of red-lining the
+/// buried offline `cargo test --locked` deep inside the four-process acceptance test.
+#[test]
+fn emitted_manifest_and_locked_fixture_pin_the_same_revisions() {
+    assert!(
+        SPIRIT_LOCK.contains(NOTA_REV),
+        "the locked fixture must pin nota at NOTA_REV ({NOTA_REV}); a chain re-pin moved the emitted manifest without refreshing spirit-lock.toml"
+    );
+    assert!(
+        SPIRIT_LOCK.contains(SIGNAL_FRAME_REV),
+        "the locked fixture must pin signal-frame at SIGNAL_FRAME_REV ({SIGNAL_FRAME_REV}); a chain re-pin moved the emitted manifest without refreshing spirit-lock.toml"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
