@@ -734,17 +734,17 @@
         "rust-build": "rust-build_5"
       },
       "locked": {
-        "lastModified": 1784246404,
-        "narHash": "sha256-iJk+TH2FcEhyczhYkP5lLVPTE1qmq0Csyi/1h2eRD78=",
+        "lastModified": 1784275517,
+        "narHash": "sha256-mZ7eL+9XbhTC7CnBv6o619sJtH7s227v5lTbyEbaZik=",
         "owner": "LiGoldragon",
         "repo": "sema-storage",
-        "rev": "929b9f696e2c23dd0e338546140c52fe9f046163",
+        "rev": "f287a0fe8426acfe26f5a70a749702cda60534b9",
         "type": "github"
       },
       "original": {
         "owner": "LiGoldragon",
         "repo": "sema-storage",
-        "rev": "929b9f696e2c23dd0e338546140c52fe9f046163",
+        "rev": "f287a0fe8426acfe26f5a70a749702cda60534b9",
         "type": "github"
       }
     },
