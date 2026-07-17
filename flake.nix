@@ -9,7 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     sema-storage.url = "github:LiGoldragon/sema-storage/a088dc14bcc6b94ab1b0c3e41e2250ddf1e7b06f";
-    schema-engine.url = "github:LiGoldragon/schema-engine/bf05d1059fb017e04596ee711326ef2b61f239ac";
+    schema-engine.url = "github:LiGoldragon/schema-engine/0ec95c1934d2af76e1a0382ab824afd5a7e1b333";
     nomos-engine.url = "github:LiGoldragon/nomos-engine/f129677fcc05cbce48f0c32eb2ecd0915c9940a4";
     logos-engine.url = "github:LiGoldragon/logos-engine/d67d2e88a812e8045331d8237c714bea7eb68aad";
   };
