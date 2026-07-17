@@ -11,8 +11,6 @@ logos-engine={git="https://github.com/LiGoldragon/logos-engine.git",rev="d67d2e8
 name-table={git="https://github.com/LiGoldragon/name-table.git",rev="c3237f77c087e6feab49d6cf34971cebc14a11e6"}
 nomos-engine={git="https://github.com/LiGoldragon/nomos-engine.git",rev="f129677fcc05cbce48f0c32eb2ecd0915c9940a4"}
 schema-engine={git="https://github.com/LiGoldragon/schema-engine.git",rev="bf05d1059fb017e04596ee711326ef2b61f239ac"}
-schema-language={git="https://github.com/LiGoldragon/schema-language.git",rev="4270fbdad5318518291829c2f08b22090e833182"}
-schema-rust={git="https://github.com/LiGoldragon/schema-rust.git",rev="79a9e5c98a5db226d88fb9bb1934f95e4d6090c9"}
 sema-storage={git="https://github.com/LiGoldragon/sema-storage.git",rev="a088dc14bcc6b94ab1b0c3e41e2250ddf1e7b06f"}
 signal-frame={git="https://github.com/LiGoldragon/signal-frame.git",rev="f46872e7e8edae5264c892443d415a273b231234",default-features=false}
 signal-logos={git="https://github.com/LiGoldragon/signal-logos.git",rev="43269306602e823395bdeffe2a653fc41f1f5eb2"}

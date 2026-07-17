@@ -1,5 +1,5 @@
 {
-  description = "language-engine-witness — process-level acceptance witness for the minimal language engine: drives the schema, nomos, and logos daemons over live signal contracts and asserts the byte-exact generated-Rust closure";
+  description = "language-engine-witness — process-level acceptance witness for the minimal language engine: drives the schema, nomos, and logos daemons over live signal contracts and asserts the emitted Rust compiles and behaves (working programs), with durable restart recovery";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
