@@ -177,46 +177,174 @@ fn reference_generated_rust(fixture: &str, component: &str) -> String {
         .to_owned()
 }
 
-/// The class of a reference paragraph — the landed set the pipeline now emits: the
-/// module head (the `// @generated` marker, the scalar-alias prelude, and the NOTA
-/// import) and the named declarations. Impl blocks, signal-frame aliases, modules,
-/// and every other block are `Other`; the pipeline does not emit them, so the
-/// expected-reference selection must exclude them. The classifier never widens
-/// beyond what the pipeline emits.
+/// The class of one reference item. The pipeline now emits the full enriched surface
+/// — the module head (`// @generated` marker, scalar-alias prelude, NOTA import), the
+/// schema declarations, and generation classes A (newtype ergonomics), B (interface
+/// ergonomics), C-stub (the two route enums, the `short_header` const module, and the
+/// `SignalOperationHeads` impl), and D (trace support). Every other reference block is
+/// out of scope: the signal-frame codec bodies (the `route`/`encode`/`decode` fns,
+/// `SignalFrameError`, `RequestPayload`/`LogVariant`, the `Frame` type aliases, and
+/// `into_frame`) and the relocation-bound message planes (classes E/F). The selection
+/// must reproduce exactly what the pipeline emits, no more.
+///
+/// The daemon assembles its output as the fixed module head followed by each lowered
+/// item's projection plus a newline (see `logos-engine`), so every item is
+/// blank-line-separated even where the legacy reference groups items without a blank
+/// (class-A inherent/`From` pairs, the interleaved class-C region). The selection
+/// therefore segments the reference at `#[rustfmt::skip]` item boundaries — merging
+/// the scalar-alias prelude, whose four aliases the head renders as one block — rather
+/// than at blank lines, and joins the landed items with a blank line each.
 enum ReferenceBlock {
     GeneratedMarker,
     ScalarPrelude,
     NotaImport,
+    ShortHeaderModule,
     Declaration(String),
+    ImplItem,
     Other,
 }
 
 impl ReferenceBlock {
     /// The four scalar aliases the prelude fixes (`String`/`Integer`/`Boolean`/`Path`).
     const SCALARS: [&'static str; 4] = ["String", "Integer", "Boolean", "Path"];
+    /// The class-C route enums and class-D trace types the pipeline emits under fixed
+    /// names. The route enums are `<Root>Route`, recognized from the landed root; the
+    /// trace types carry these fixed generated names, independent of the schema.
+    const GENERATED_LANDED: [&'static str; 3] = ["SignalObjectName", "ObjectName", "TraceEvent"];
+    /// Method and trait tokens that mark a signal-frame codec body or a relocation
+    /// plane — the impl blocks the enriched stub does not generate, so an impl on an
+    /// otherwise-landed type (`Input`/`Output`) that carries one of these is excluded.
+    const OUT_OF_SCOPE_IMPL_MARKERS: [&'static str; 6] = [
+        "encode_signal_frame",
+        "into_frame",
+        "into_reply_frame",
+        "with_origin_route",
+        "RequestPayload",
+        "LogVariant",
+    ];
 
-    fn classify(block: &str) -> Self {
-        if block.starts_with("// @generated") {
+    fn classify(item: &str) -> Self {
+        if item.starts_with("// @generated") {
             return Self::GeneratedMarker;
         }
-        if block.lines().any(|line| line.starts_with("pub use nota::")) {
+        if item.lines().any(|line| line.starts_with("pub use nota::")) {
             return Self::NotaImport;
         }
-        if let Some(name) = declared_name(block) {
+        if item
+            .lines()
+            .any(|line| line.starts_with("pub mod short_header"))
+        {
+            return Self::ShortHeaderModule;
+        }
+        // Any other module (`schema`, `signal`) is out of scope; guard before the
+        // declared-name check so an inner `pub enum`/`pub struct` cannot leak a class.
+        if Self::signature_line(item).is_some_and(|line| line.starts_with("pub mod ")) {
+            return Self::Other;
+        }
+        if Self::is_scalar_prelude(item) {
+            return Self::ScalarPrelude;
+        }
+        if let Some(name) = declared_name(item) {
             return Self::Declaration(name);
         }
-        if Self::is_scalar_prelude(block) {
-            return Self::ScalarPrelude;
+        if Self::signature_line(item).is_some_and(|line| line.starts_with("impl")) {
+            return Self::ImplItem;
         }
         Self::Other
     }
 
+    /// Whether the pipeline emits this reference item, given the schema's landed
+    /// declaration names.
+    fn is_landed(item: &str, declarations: &[&str]) -> bool {
+        match Self::classify(item) {
+            Self::GeneratedMarker
+            | Self::ScalarPrelude
+            | Self::NotaImport
+            | Self::ShortHeaderModule => true,
+            Self::Declaration(name) => Self::name_is_landed(&name, declarations),
+            Self::ImplItem => Self::impl_is_landed(item, declarations),
+            Self::Other => false,
+        }
+    }
+
+    /// A declared name is landed if it is a schema declaration, a `<Root>Route` route
+    /// enum over a landed root, or one of the fixed generated trace types.
+    fn name_is_landed(name: &str, declarations: &[&str]) -> bool {
+        declarations.contains(&name)
+            || name
+                .strip_suffix("Route")
+                .is_some_and(|root| declarations.contains(&root))
+            || Self::GENERATED_LANDED.contains(&name)
+    }
+
+    /// An impl is landed if its subject type is landed and it carries no signal-frame
+    /// codec or relocation-plane marker.
+    fn impl_is_landed(item: &str, declarations: &[&str]) -> bool {
+        if Self::OUT_OF_SCOPE_IMPL_MARKERS
+            .iter()
+            .any(|marker| item.contains(marker))
+        {
+            return false;
+        }
+        Self::impl_subject(item).is_some_and(|subject| Self::name_is_landed(&subject, declarations))
+    }
+
+    /// The subject type an impl is for: the type after `for` for a trait impl, else
+    /// the type after `impl` past any generic parameters.
+    fn impl_subject(item: &str) -> Option<String> {
+        let signature = Self::signature_line(item)?;
+        let after_impl = signature.strip_prefix("impl")?.trim_start();
+        let after_generics = if after_impl.starts_with('<') {
+            Self::skip_angle_group(after_impl)
+        } else {
+            after_impl
+        }
+        .trim_start();
+        let subject = match after_generics.rfind(" for ") {
+            Some(index) => &after_generics[index + " for ".len()..],
+            None => after_generics,
+        };
+        let name: String = subject
+            .trim_start()
+            .chars()
+            .take_while(|character| {
+                character.is_alphanumeric() || *character == '_' || *character == ':'
+            })
+            .collect();
+        (!name.is_empty()).then_some(name)
+    }
+
+    /// The remainder after a balanced `<…>` generic group at the start of `text`.
+    fn skip_angle_group(text: &str) -> &str {
+        let mut depth = 0usize;
+        for (index, character) in text.char_indices() {
+            match character {
+                '<' => depth += 1,
+                '>' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return &text[index + character.len_utf8()..];
+                    }
+                }
+                _ => {}
+            }
+        }
+        text
+    }
+
+    /// The first non-attribute line — the item's own signature (`impl …`, `pub … `).
+    fn signature_line(item: &str) -> Option<&str> {
+        item.lines()
+            .map(str::trim_start)
+            .find(|line| !line.starts_with('#'))
+    }
+
     /// A block is the scalar prelude iff every line is an attribute or a
     /// `pub type <scalar> = …;` alias over the fixed scalar set — so the signal-frame
-    /// alias block (`pub type Frame = …`, mixed with impls) is excluded.
-    fn is_scalar_prelude(block: &str) -> bool {
+    /// alias block (`pub type Frame = …`) is excluded.
+    fn is_scalar_prelude(item: &str) -> bool {
         let mut saw_alias = false;
-        for line in block.lines() {
+        for line in item.lines() {
             if line.starts_with("#[") {
                 continue;
             }
@@ -236,22 +364,48 @@ impl ReferenceBlock {
     }
 }
 
-/// The expected pipeline output: the module head (marker, scalar prelude, NOTA
-/// import) followed by the named declarations, each block separated by a blank line
-/// — the freshly generated legacy reference filtered to exactly the landed classes.
-fn select_landed_classes(reference: &str, declarations: &[&str]) -> String {
-    let mut output = String::new();
+/// The reference split into individual `#[rustfmt::skip]`-delimited items, with the
+/// scalar-alias prelude kept whole (the pipeline renders its four aliases as one head
+/// block, not four items). Everything else that shares a blank-line paragraph in the
+/// legacy reference — the class-A pairs, the interleaved class-C region — is split so
+/// each item can be selected on its own.
+fn reference_items(reference: &str) -> Vec<String> {
+    let mut items = Vec::new();
     for paragraph in reference.split("\n\n") {
         let block = paragraph.trim_matches('\n');
-        let selected = match ReferenceBlock::classify(block) {
-            ReferenceBlock::GeneratedMarker
-            | ReferenceBlock::ScalarPrelude
-            | ReferenceBlock::NotaImport => true,
-            ReferenceBlock::Declaration(name) => declarations.contains(&name.as_str()),
-            ReferenceBlock::Other => false,
-        };
-        if selected {
-            output.push_str(block);
+        if block.is_empty() {
+            continue;
+        }
+        if ReferenceBlock::is_scalar_prelude(block) {
+            items.push(block.to_owned());
+            continue;
+        }
+        let mut current = String::new();
+        for line in block.lines() {
+            if line == "#[rustfmt::skip]" && !current.is_empty() {
+                items.push(current.trim_end_matches('\n').to_owned());
+                current.clear();
+            }
+            current.push_str(line);
+            current.push('\n');
+        }
+        let tail = current.trim_end_matches('\n');
+        if !tail.is_empty() {
+            items.push(tail.to_owned());
+        }
+    }
+    items
+}
+
+/// The expected pipeline output: the freshly generated legacy reference segmented at
+/// item granularity and filtered to exactly the landed classes (module head, schema
+/// declarations, generation classes A/B/C-stub/D), each item blank-line-separated to
+/// match the daemon's own assembly.
+fn select_landed_classes(reference: &str, declarations: &[&str]) -> String {
+    let mut output = String::new();
+    for item in reference_items(reference) {
+        if ReferenceBlock::is_landed(&item, declarations) {
+            output.push_str(&item);
             output.push_str("\n\n");
         }
     }
@@ -438,8 +592,8 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
                 "Output",
             ],
         ),
-        "the module head (marker, scalar prelude, NOTA import) and all ten \
-         declarations preserve the free byte-exact witness"
+        "the module head, the twelve declarations, and generation classes \
+         A/B/C-stub/D preserve the byte-exact witness over the full landed surface"
     );
 
     let generated = temporary.path().join("generated");
@@ -571,8 +725,8 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
                 "Weight", "Note", "Priority", "Parcel", "Ticket", "Input", "Output"
             ],
         ),
-        "the restarted pipeline emits the second document's module head and \
-         declarations byte-exact"
+        "the restarted pipeline emits the second document's module head, \
+         declarations, and generation classes A/B/C-stub/D byte-exact"
     );
     assert_ne!(
         second_event.rust, rust,

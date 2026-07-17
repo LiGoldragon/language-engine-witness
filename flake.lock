@@ -376,17 +376,17 @@
         "rust-build": "rust-build"
       },
       "locked": {
-        "lastModified": 1784289366,
-        "narHash": "sha256-ccMlzfvEIw3zjSU+ZbX78cVuvHA+kCylvxsCRfHrF6Y=",
+        "lastModified": 1784297721,
+        "narHash": "sha256-iBwci4xCOid9roBWWnIcysCJnUqIDIUVgHX1kkZn9bo=",
         "owner": "LiGoldragon",
         "repo": "logos-engine",
-        "rev": "d427fe1ce279e931d9a44b617f24c7701493102f",
+        "rev": "d67d2e88a812e8045331d8237c714bea7eb68aad",
         "type": "github"
       },
       "original": {
         "owner": "LiGoldragon",
         "repo": "logos-engine",
-        "rev": "d427fe1ce279e931d9a44b617f24c7701493102f",
+        "rev": "d67d2e88a812e8045331d8237c714bea7eb68aad",
         "type": "github"
       }
     },
@@ -477,17 +477,17 @@
         "rust-build": "rust-build_2"
       },
       "locked": {
-        "lastModified": 1784289104,
-        "narHash": "sha256-OGPMKSP5pNNM4MNZpRopLwfTT8C+p0udzafoZVO6538=",
+        "lastModified": 1784301602,
+        "narHash": "sha256-s7OKV3s7OoMRKG7NzKuTnCoh9Ve1jHZw6PwMSgWBlPw=",
         "owner": "LiGoldragon",
         "repo": "nomos-engine",
-        "rev": "6d8cc09e0a65a746799ff32fd5a97c412232cb46",
+        "rev": "f129677fcc05cbce48f0c32eb2ecd0915c9940a4",
         "type": "github"
       },
       "original": {
         "owner": "LiGoldragon",
         "repo": "nomos-engine",
-        "rev": "6d8cc09e0a65a746799ff32fd5a97c412232cb46",
+        "rev": "f129677fcc05cbce48f0c32eb2ecd0915c9940a4",
         "type": "github"
       }
     },
@@ -713,17 +713,17 @@
         "rust-build": "rust-build_4"
       },
       "locked": {
-        "lastModified": 1784288681,
-        "narHash": "sha256-DNObzkm7JCoEBXyvxckpNwJBY+baQLbJn1Nmecr1Vww=",
+        "lastModified": 1784297395,
+        "narHash": "sha256-Rhs1CmYrST0wSJRG1ewa+Di31rx7n535nRZEJlvjbwk=",
         "owner": "LiGoldragon",
         "repo": "schema-engine",
-        "rev": "78f6a37e013d983e5ae5458b31c1760efbcbf198",
+        "rev": "bf05d1059fb017e04596ee711326ef2b61f239ac",
         "type": "github"
       },
       "original": {
         "owner": "LiGoldragon",
         "repo": "schema-engine",
-        "rev": "78f6a37e013d983e5ae5458b31c1760efbcbf198",
+        "rev": "bf05d1059fb017e04596ee711326ef2b61f239ac",
         "type": "github"
       }
     },
@@ -734,17 +734,17 @@
         "rust-build": "rust-build_5"
       },
       "locked": {
-        "lastModified": 1784288319,
-        "narHash": "sha256-sKm5iU0golIh33o5li+y0szg5zxrtlK8Kx6Xi2WQqxM=",
+        "lastModified": 1784297067,
+        "narHash": "sha256-sAT3soK3RyOJL/rHgyu19MuBa9pOx9aDD2NhysjFXTE=",
         "owner": "LiGoldragon",
         "repo": "sema-storage",
-        "rev": "666a06caee2c16fe7590e10ef9fa22bc6277a060",
+        "rev": "a088dc14bcc6b94ab1b0c3e41e2250ddf1e7b06f",
         "type": "github"
       },
       "original": {
         "owner": "LiGoldragon",
         "repo": "sema-storage",
-        "rev": "666a06caee2c16fe7590e10ef9fa22bc6277a060",
+        "rev": "a088dc14bcc6b94ab1b0c3e41e2250ddf1e7b06f",
         "type": "github"
       }
     },
