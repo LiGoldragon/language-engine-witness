@@ -181,7 +181,7 @@ fn write_crate(path: &Path, rust: &str) {
     fs::write(path.join("src/lib.rs"), rust).unwrap();
     fs::write(
         path.join("tests/behavior.rs"),
-        r#"use generated_spirit::{Description,Entry,Input,Kind,Magnitude,Output,Query,RecordIdentifier,RecordSet,Summary,Topic,Topics};
+        r#"use generated_spirit::{Description,Entry,Input,Kind,Magnitude,Output,Query,RecordIdentifier,RecordSet,SignalFrameError,Summary,Topic,Topics};
 fn archived<T:rkyv::Archive>(){}
 fn public_fields(entry:&Entry,query:&Query){let _: &Topics=&entry.topics;let _: &Kind=&entry.kind;let _: &Description=&entry.description;let _: &Magnitude=&entry.magnitude;let _: &Topic=&query.topic;let _: &Kind=&query.kind;}
 #[test]
@@ -190,6 +190,43 @@ fn complete_public_surface_and_behavior(){
  assert_eq!(Kind::Decision,Kind::Decision);assert_ne!(Kind::Decision,Kind::Constraint);assert_eq!(Magnitude::High,Magnitude::High);
  let _=public_fields as fn(&Entry,&Query);
  for name in [std::any::type_name::<Topic>(),std::any::type_name::<Topics>(),std::any::type_name::<Description>(),std::any::type_name::<Summary>(),std::any::type_name::<RecordIdentifier>(),std::any::type_name::<Entry>(),std::any::type_name::<Query>(),std::any::type_name::<RecordSet>(),std::any::type_name::<Kind>(),std::any::type_name::<Magnitude>(),std::any::type_name::<Input>(),std::any::type_name::<Output>()]{assert!(name.starts_with("generated_spirit::"));}
+}
+
+// The ordinary-exchange codec round-trip, both directions, against the hand-written
+// reference wire expressed inline here (8-byte little-endian short header ahead of an
+// rkyv archive) — the same wire the hand-written signal contracts speak. This is the
+// working-programs witness for the Nomos-generated encode/decode bodies.
+macro_rules! roundtrip {
+ ($ty:ty,$value:expr) => {{
+  let value: $ty = $value;
+  // generated-encode / hand-written-decode
+  let frame = value.encode_signal_frame().expect("generated encode");
+  assert!(frame.len()>=8,"frame carries the short header");
+  let header=u64::from_le_bytes(frame[..8].try_into().unwrap());
+  assert_eq!(header,value.short_header(),"generated encode prepends the little-endian short header");
+  let hand_decoded=rkyv::from_bytes::<$ty,rkyv::rancor::Error>(&frame[8..]).expect("hand-written decode of the archive tail");
+  assert_eq!(hand_decoded,value,"generated-encode round-trips through the hand-written decode");
+  // hand-written-encode / generated-decode
+  let mut hand=value.short_header().to_le_bytes().to_vec();
+  hand.extend_from_slice(&rkyv::to_bytes::<rkyv::rancor::Error>(&value).expect("hand-written encode"));
+  assert_eq!(hand,frame,"the generated and hand-written encoders agree byte-for-byte");
+  let (route,generated_decoded)=<$ty>::decode_signal_frame(&hand).expect("generated decode");
+  assert_eq!(generated_decoded,value,"hand-written-encode round-trips through the generated decode");
+  assert_eq!(route,value.route(),"the generated decode reports the operation route");
+  // the guards: a corrupted header and a too-short frame are rejected loudly
+  let mut corrupt=hand.clone();corrupt[0]^=0xFF;
+  assert!(<$ty>::decode_signal_frame(&corrupt).is_err(),"a header that does not re-derive is rejected");
+  assert!(matches!(<$ty>::decode_signal_frame(&frame[..4]),Err(SignalFrameError::FrameTooShort)),"a frame shorter than the short header is rejected");
+ }};
+}
+#[test]
+fn the_generated_codec_round_trips_every_ordinary_operation(){
+ let entry=Entry{topics:Topics::new(vec![Topic::new("north-star")]),kind:Kind::Decision,description:Description::new("the ported spirit speaks the wire"),magnitude:Magnitude::High};
+ let query=Query{topic:Topic::new("north-star"),kind:Kind::Constraint};
+ roundtrip!(Input,Input::record(entry.clone()));
+ roundtrip!(Input,Input::observe(query));
+ roundtrip!(Output,Output::record_accepted(7));
+ roundtrip!(Output,Output::records_observed(vec![entry]));
 }
 "#,
     )
