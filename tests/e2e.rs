@@ -158,7 +158,7 @@ fn write_crate(path: &Path, rust: &str) {
     .unwrap();
     fs::write(
         path.join("Cargo.toml"),
-        "[package]\nname=\"generated-spirit\"\nversion=\"0.1.0\"\nedition=\"2024\"\n[dependencies]\nrkyv={version=\"0.8\",features=[\"bytecheck\"]}\nsignal-frame={git=\"https://github.com/LiGoldragon/signal-frame.git\",rev=\"f46872e7e8edae5264c892443d415a273b231234\",default-features=false}\nnota={git=\"https://github.com/LiGoldragon/nota.git\",rev=\"7d0651a0e098efea5fe2578cb06d88e009d40ff0\",optional=true}\n[features]\ndefault=[]\nnota-text=[\"dep:nota\"]\n",
+        "[package]\nname=\"generated-spirit\"\nversion=\"0.1.0\"\nedition=\"2024\"\n[dependencies]\nrkyv={version=\"0.8\",features=[\"bytecheck\"]}\nsignal-frame={git=\"https://github.com/LiGoldragon/signal-frame.git\",rev=\"f46872e7e8edae5264c892443d415a273b231234\",default-features=false}\nnota={git=\"https://github.com/LiGoldragon/nota.git\",rev=\"89dc3c85a9ff96d4e4d53accfd867df672cae5a8\",optional=true}\n[features]\ndefault=[]\nnota-text=[\"dep:nota\"]\n",
     )
     .unwrap();
     // The pipeline now emits the full module head (marker, scalar prelude, NOTA

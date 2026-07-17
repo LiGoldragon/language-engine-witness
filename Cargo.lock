@@ -187,7 +187,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -529,8 +529,8 @@ dependencies = [
 
 [[package]]
 name = "nota"
-version = "0.8.0"
-source = "git+https://github.com/LiGoldragon/nota.git?rev=7d0651a0e098efea5fe2578cb06d88e009d40ff0#7d0651a0e098efea5fe2578cb06d88e009d40ff0"
+version = "0.9.0"
+source = "git+https://github.com/LiGoldragon/nota.git?rev=89dc3c85a9ff96d4e4d53accfd867df672cae5a8#89dc3c85a9ff96d4e4d53accfd867df672cae5a8"
 dependencies = [
  "nota-derive",
  "rkyv",
@@ -539,7 +539,7 @@ dependencies = [
 [[package]]
 name = "nota-derive"
 version = "0.4.0"
-source = "git+https://github.com/LiGoldragon/nota.git?rev=7d0651a0e098efea5fe2578cb06d88e009d40ff0#7d0651a0e098efea5fe2578cb06d88e009d40ff0"
+source = "git+https://github.com/LiGoldragon/nota.git?rev=89dc3c85a9ff96d4e4d53accfd867df672cae5a8#89dc3c85a9ff96d4e4d53accfd867df672cae5a8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -721,7 +721,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -742,7 +742,7 @@ dependencies = [
 [[package]]
 name = "schema-engine"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/schema-engine.git?rev=0ec95c1934d2#0ec95c1934d2af76e1a0382ab824afd5a7e1b333"
+source = "git+https://github.com/LiGoldragon/schema-engine.git?rev=a451f631cc03#a451f631cc03dccdc3b190cf4010cf9d45822ffc"
 dependencies = [
  "content-identity",
  "core-schema",
@@ -758,8 +758,8 @@ dependencies = [
 
 [[package]]
 name = "schema-language"
-version = "0.2.0"
-source = "git+https://github.com/LiGoldragon/schema-language.git?rev=eccc226210a4#eccc226210a4c3d7e0bd003a70c88f3e83d1b9e6"
+version = "0.3.0"
+source = "git+https://github.com/LiGoldragon/schema-language.git?rev=9c217610c4b8#9c217610c4b8d3bdaa9f95542e28c04424a593e3"
 dependencies = [
  "blake3",
  "nota",
@@ -934,7 +934,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -970,7 +970,7 @@ dependencies = [
  "getrandom",
  "once_cell",
  "rustix",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1132,7 +1132,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
