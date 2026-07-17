@@ -7,11 +7,13 @@ license="MIT OR Apache-2.0"
 repository="https://github.com/LiGoldragon/language-engine-witness"
 description="Process-level acceptance witness for the minimal language engine"
 [dependencies]
-logos-engine={git="https://github.com/LiGoldragon/logos-engine.git",rev="f30f158dc31e214062a0a24c7dd4b3e5ff509e1a"}
+logos-engine={git="https://github.com/LiGoldragon/logos-engine.git",rev="43d8f279938e5c52ca1032a3467947095695cd1d"}
 name-table={git="https://github.com/LiGoldragon/name-table.git",rev="c3237f77c087e6feab49d6cf34971cebc14a11e6"}
-nomos-engine={git="https://github.com/LiGoldragon/nomos-engine.git",rev="ff1800b99c0af2e5b2d1e72a79657e0d5d595fd4"}
-schema-engine={git="https://github.com/LiGoldragon/schema-engine.git",rev="3c107c4c7dff8904338c70de8d4e00ed62543a20"}
-sema-storage={git="https://github.com/LiGoldragon/sema-storage.git",rev="d54dacdd1ad70cd312ea1f3ceb15efc2cec98930"}
+nomos-engine={git="https://github.com/LiGoldragon/nomos-engine.git",rev="458104b89a407b30715f264f023fc045109443cd"}
+schema-engine={git="https://github.com/LiGoldragon/schema-engine.git",rev="7b61b70100bbaf12f32d930a3decfb6d5b534ad8"}
+schema-language={git="https://github.com/LiGoldragon/schema-language.git",rev="4270fbdad5318518291829c2f08b22090e833182"}
+schema-rust={git="https://github.com/LiGoldragon/schema-rust.git",rev="79a9e5c98a5db226d88fb9bb1934f95e4d6090c9"}
+sema-storage={git="https://github.com/LiGoldragon/sema-storage.git",rev="929b9f696e2c23dd0e338546140c52fe9f046163"}
 signal-frame={git="https://github.com/LiGoldragon/signal-frame.git",rev="f46872e7e8edae5264c892443d415a273b231234",default-features=false}
 signal-logos={git="https://github.com/LiGoldragon/signal-logos.git",rev="9c119916aaa77f98b0968102419a500f62ba6cce"}
 signal-nomos={git="https://github.com/LiGoldragon/signal-nomos.git",rev="afdf62f371f5b52eab5122dc0de6d1bf40ba753c"}
@@ -21,5 +23,9 @@ rkyv={version="0.8",features=["bytecheck"]}
 tokio={version="1",features=["macros","rt-multi-thread","net","io-util","time"]}
 [dev-dependencies]
 tempfile="3"
+[patch."https://github.com/LiGoldragon/kameo.git?branch=main"]
+kameo={git="https://github.com/LiGoldragon/kameo.git",rev="f491b45d7dcb55e5837eddde3d5d7ca8ceaa9f01"}
+[patch."https://github.com/LiGoldragon/signal-frame.git?branch=main"]
+signal-frame={git="https://github.com/LiGoldragon/signal-frame.git",rev="f46872e7e8edae5264c892443d415a273b231234"}
 [lints.rust]
 unsafe_code="forbid"

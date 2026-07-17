@@ -1,8 +1,8 @@
 use std::{
     fs,
-    path::Path,
+    io::{BufRead, BufReader},
+    path::{Path, PathBuf},
     process::{Child, Command, Stdio},
-    thread,
     time::Duration,
 };
 
@@ -33,26 +33,56 @@ impl Drop for Processes {
         self.terminate();
     }
 }
-fn spawn(kind: &str, socket: &Path, state: &Path, upstream: Option<&Path>) -> Child {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_engine-process"));
-    command.args([kind, socket.to_str().unwrap(), state.to_str().unwrap()]);
-    if let Some(upstream) = upstream {
-        command.arg(upstream);
-    }
-    command
-        .stdout(Stdio::null())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .unwrap()
+struct ProductionBinaries {
+    sema: PathBuf,
+    schema: PathBuf,
+    nomos: PathBuf,
+    logos: PathBuf,
 }
-fn wait(path: &Path) {
-    for _ in 0..100 {
-        if path.exists() {
-            return;
+impl ProductionBinaries {
+    fn from_environment() -> Self {
+        Self {
+            sema: std::env::var_os("SEMA_STORAGE_BIN")
+                .expect("SEMA_STORAGE_BIN")
+                .into(),
+            schema: std::env::var_os("SCHEMA_ENGINE_BIN")
+                .expect("SCHEMA_ENGINE_BIN")
+                .into(),
+            nomos: std::env::var_os("NOMOS_ENGINE_BIN")
+                .expect("NOMOS_ENGINE_BIN")
+                .into(),
+            logos: std::env::var_os("LOGOS_ENGINE_BIN")
+                .expect("LOGOS_ENGINE_BIN")
+                .into(),
         }
-        thread::sleep(Duration::from_millis(25));
     }
-    panic!("socket did not appear: {}", path.display());
+
+    fn spawn(&self, kind: &str, socket: &Path, state: &Path, upstream: Option<&Path>) -> Child {
+        let program = match kind {
+            "sema" => &self.sema,
+            "schema" => &self.schema,
+            "nomos" => &self.nomos,
+            "logos" => &self.logos,
+            _ => panic!("unknown production binary: {kind}"),
+        };
+        let mut command = Command::new(program);
+        command.args(["daemon", socket.to_str().unwrap(), state.to_str().unwrap()]);
+        if let Some(upstream) = upstream {
+            command.arg(upstream);
+        }
+        let mut child = command
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .unwrap();
+        let line = BufReader::new(child.stdout.take().expect("daemon stdout"))
+            .lines()
+            .next()
+            .expect("daemon readiness line")
+            .expect("read daemon readiness");
+        assert_eq!(line, format!("READY {}", socket.display()));
+        child
+    }
 }
 struct TestSocket {
     stream: UnixStream,
@@ -134,7 +164,20 @@ fn declared_name(block: &str) -> Option<String> {
     }
     None
 }
-fn expected_generated_rust() -> String {
+fn reference_generated_rust() -> String {
+    let schema = schema_language::SchemaEngine::default()
+        .lower_source(
+            include_str!("fixtures/spirit-min.schema"),
+            schema_language::SchemaIdentity::new("spirit:lib", "0.1.0"),
+        )
+        .expect("legacy reference schema lowering");
+    schema_rust::RustEmitter::default()
+        .emit_code_from_true_schema(&schema)
+        .as_str()
+        .to_owned()
+}
+
+fn expected_generated_rust(reference: &str) -> String {
     let names = [
         "Topic",
         "Topics",
@@ -149,9 +192,8 @@ fn expected_generated_rust() -> String {
         "Input",
         "Output",
     ];
-    let golden = include_str!("fixtures/spirit_generated.rs");
     let mut output = String::new();
-    for paragraph in golden.split("\n\n") {
+    for paragraph in reference.split("\n\n") {
         let block = paragraph.trim_matches('\n');
         if declared_name(block).is_some_and(|name| names.contains(&name.as_str())) {
             output.push_str(block);
@@ -166,10 +208,14 @@ fn scalar_prelude() -> &'static str {
 fn write_crate(path: &Path, rust: &str, scalar_prelude_required: bool) {
     fs::create_dir_all(path.join("src")).unwrap();
     fs::create_dir_all(path.join("tests")).unwrap();
-    fs::write(path.join("Cargo.lock"), include_str!("../Cargo.lock")).unwrap();
+    fs::write(
+        path.join("Cargo.lock"),
+        include_str!("fixtures/spirit-lock.toml"),
+    )
+    .unwrap();
     fs::write(
         path.join("Cargo.toml"),
-        "[package]\nname=\"generated-spirit\"\nversion=\"0.1.0\"\nedition=\"2024\"\n[dependencies]\nrkyv={version=\"0.8\",features=[\"bytecheck\"]}\nsignal-frame={git=\"https://github.com/LiGoldragon/signal-frame.git\",rev=\"f46872e7e8edae5264c892443d415a273b231234\",default-features=false}\n[features]\nnota-text=[]\n",
+        "[package]\nname=\"generated-spirit\"\nversion=\"0.1.0\"\nedition=\"2024\"\n[dependencies]\nrkyv={version=\"0.8\",features=[\"bytecheck\"]}\nsignal-frame={git=\"https://github.com/LiGoldragon/signal-frame.git\",rev=\"f46872e7e8edae5264c892443d415a273b231234\",default-features=false}\nnota={git=\"https://github.com/LiGoldragon/nota.git\",rev=\"7d0651a0e098efea5fe2578cb06d88e009d40ff0\",optional=true}\n[features]\ndefault=[]\nnota-text=[\"dep:nota\"]\n",
     )
     .unwrap();
     fs::write(
@@ -206,8 +252,8 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
     let nomos = temporary.path().join("nomos.sock");
     let logos = temporary.path().join("logos.sock");
     let database = temporary.path().join("isolated.sema");
-    let mut processes = Processes(vec![spawn("sema", &sema, &database, None)]);
-    wait(&sema);
+    let binaries = ProductionBinaries::from_environment();
+    let mut processes = Processes(vec![binaries.spawn("sema", &sema, &database, None)]);
     let mut unsupported = TestSocket {
         stream: UnixStream::connect(&sema).await.unwrap(),
         sequence: 0,
@@ -223,16 +269,15 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
             .is_accepted_handshake(),
         "unsupported shared wire versions are rejected before request admission"
     );
-    processes.0.push(spawn("schema", &schema, &sema, None));
-    wait(&schema);
     processes
         .0
-        .push(spawn("nomos", &nomos, &sema, Some(&schema)));
-    wait(&nomos);
+        .push(binaries.spawn("schema", &schema, &sema, None));
     processes
         .0
-        .push(spawn("logos", &logos, &sema, Some(&nomos)));
-    wait(&logos);
+        .push(binaries.spawn("nomos", &nomos, &sema, Some(&schema)));
+    processes
+        .0
+        .push(binaries.spawn("logos", &logos, &sema, Some(&nomos)));
 
     let mut projected = TestSocket::connect(&logos).await;
     projected
@@ -245,7 +290,6 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
         .await;
     let subscribed: signal_logos::Reply = projected.read_reply().await;
     assert!(matches!(subscribed, signal_logos::Reply::Subscribed { .. }));
-    tokio::time::sleep(Duration::from_millis(100)).await;
 
     for request in [
         signal_schema::Request::StoreSignalContract {
@@ -327,48 +371,51 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
         panic!("expected projection event, got {pushed:?}");
     };
     let rust = event.rust;
+    let reference_rust = reference_generated_rust();
     assert_eq!(
         rust,
-        expected_generated_rust(),
+        expected_generated_rust(&reference_rust),
         "all ten declarations preserve the free byte-exact witness"
     );
 
     let generated = temporary.path().join("generated");
     let reference = temporary.path().join("reference");
     write_crate(&generated, &rust, true);
-    write_crate(
-        &reference,
-        include_str!("fixtures/spirit_generated.rs"),
-        false,
-    );
+    write_crate(&reference, &reference_rust, false);
     for crate_path in [&generated, &reference] {
-        let status = Command::new("cargo")
-            .args(["test", "--quiet"])
-            .current_dir(crate_path)
-            .status()
-            .unwrap();
-        assert!(
-            status.success(),
-            "generated and reference libraries share manifest, public surface, and behavior"
-        );
+        for feature_arguments in [
+            &["test", "--quiet", "--locked"][..],
+            &["test", "--quiet", "--locked", "--no-default-features"][..],
+            &["test", "--quiet", "--locked", "--all-features"][..],
+        ] {
+            let status = Command::new("cargo")
+                .args(feature_arguments)
+                .current_dir(crate_path)
+                .status()
+                .unwrap();
+            assert!(
+                status.success(),
+                "generated and reference libraries share their locked manifest, public surface, and behavior for {feature_arguments:?}"
+            );
+        }
     }
 
     processes.terminate();
     for socket in [&sema, &schema, &nomos, &logos] {
         let _ = fs::remove_file(socket);
     }
-    processes.0.push(spawn("sema", &sema, &database, None));
-    wait(&sema);
-    processes.0.push(spawn("schema", &schema, &sema, None));
-    wait(&schema);
     processes
         .0
-        .push(spawn("nomos", &nomos, &sema, Some(&schema)));
-    wait(&nomos);
+        .push(binaries.spawn("sema", &sema, &database, None));
     processes
         .0
-        .push(spawn("logos", &logos, &sema, Some(&nomos)));
-    wait(&logos);
+        .push(binaries.spawn("schema", &schema, &sema, None));
+    processes
+        .0
+        .push(binaries.spawn("nomos", &nomos, &sema, Some(&schema)));
+    processes
+        .0
+        .push(binaries.spawn("logos", &logos, &sema, Some(&nomos)));
 
     let recovered: signal_sema_storage::Reply = exchange(
         &sema,
@@ -422,7 +469,6 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
         )
         .await;
     let _: signal_logos::Reply = resumed_projection.read_reply().await;
-    tokio::time::sleep(Duration::from_millis(100)).await;
     let stored: signal_schema::Reply = exchange(
         &schema,
         &signal_schema::Request::IngestTypeSchema {

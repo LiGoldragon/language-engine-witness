@@ -1,1 +1,1 @@
-Byte-exact copies from `golden-bridge @ 03929a478dec18b597ba8994aaea9e576b41a717`, used read-only as the process-level oracle. The source repository was not edited.
+`spirit-min.schema` is the read-only compatibility fixture from `golden-bridge @ 03929a478dec18b597ba8994aaea9e576b41a717`. Reference Rust is generated during the witness by the exact pinned public `schema-rust` producer; no checked-in generated Rust is used as the reference.
