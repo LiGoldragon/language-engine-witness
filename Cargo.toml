@@ -7,7 +7,7 @@ license="MIT OR Apache-2.0"
 repository="https://github.com/LiGoldragon/language-engine-witness"
 description="Process-level acceptance witness for the minimal language engine"
 [dependencies]
-logos-engine={git="https://github.com/LiGoldragon/logos-engine.git",rev="43d8f279938e5c52ca1032a3467947095695cd1d"}
+logos-engine={git="https://github.com/LiGoldragon/logos-engine.git",rev="e91713a2f16c2708bb1a0ac3708fa6d435db634a"}
 name-table={git="https://github.com/LiGoldragon/name-table.git",rev="c3237f77c087e6feab49d6cf34971cebc14a11e6"}
 nomos-engine={git="https://github.com/LiGoldragon/nomos-engine.git",rev="458104b89a407b30715f264f023fc045109443cd"}
 schema-engine={git="https://github.com/LiGoldragon/schema-engine.git",rev="7b61b70100bbaf12f32d930a3decfb6d5b534ad8"}

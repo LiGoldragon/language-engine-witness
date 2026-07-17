@@ -177,21 +177,87 @@ fn reference_generated_rust(fixture: &str, component: &str) -> String {
         .to_owned()
 }
 
-fn select_declarations(reference: &str, names: &[&str]) -> String {
+/// The class of a reference paragraph — the landed set the pipeline now emits: the
+/// module head (the `// @generated` marker, the scalar-alias prelude, and the NOTA
+/// import) and the named declarations. Impl blocks, signal-frame aliases, modules,
+/// and every other block are `Other`; the pipeline does not emit them, so the
+/// expected-reference selection must exclude them. The classifier never widens
+/// beyond what the pipeline emits.
+enum ReferenceBlock {
+    GeneratedMarker,
+    ScalarPrelude,
+    NotaImport,
+    Declaration(String),
+    Other,
+}
+
+impl ReferenceBlock {
+    /// The four scalar aliases the prelude fixes (`String`/`Integer`/`Boolean`/`Path`).
+    const SCALARS: [&'static str; 4] = ["String", "Integer", "Boolean", "Path"];
+
+    fn classify(block: &str) -> Self {
+        if block.starts_with("// @generated") {
+            return Self::GeneratedMarker;
+        }
+        if block.lines().any(|line| line.starts_with("pub use nota::")) {
+            return Self::NotaImport;
+        }
+        if let Some(name) = declared_name(block) {
+            return Self::Declaration(name);
+        }
+        if Self::is_scalar_prelude(block) {
+            return Self::ScalarPrelude;
+        }
+        Self::Other
+    }
+
+    /// A block is the scalar prelude iff every line is an attribute or a
+    /// `pub type <scalar> = …;` alias over the fixed scalar set — so the signal-frame
+    /// alias block (`pub type Frame = …`, mixed with impls) is excluded.
+    fn is_scalar_prelude(block: &str) -> bool {
+        let mut saw_alias = false;
+        for line in block.lines() {
+            if line.starts_with("#[") {
+                continue;
+            }
+            let Some(rest) = line.strip_prefix("pub type ") else {
+                return false;
+            };
+            let name: String = rest
+                .chars()
+                .take_while(|character| character.is_alphanumeric() || *character == '_')
+                .collect();
+            if !Self::SCALARS.contains(&name.as_str()) {
+                return false;
+            }
+            saw_alias = true;
+        }
+        saw_alias
+    }
+}
+
+/// The expected pipeline output: the module head (marker, scalar prelude, NOTA
+/// import) followed by the named declarations, each block separated by a blank line
+/// — the freshly generated legacy reference filtered to exactly the landed classes.
+fn select_landed_classes(reference: &str, declarations: &[&str]) -> String {
     let mut output = String::new();
     for paragraph in reference.split("\n\n") {
         let block = paragraph.trim_matches('\n');
-        if declared_name(block).is_some_and(|name| names.contains(&name.as_str())) {
+        let selected = match ReferenceBlock::classify(block) {
+            ReferenceBlock::GeneratedMarker
+            | ReferenceBlock::ScalarPrelude
+            | ReferenceBlock::NotaImport => true,
+            ReferenceBlock::Declaration(name) => declarations.contains(&name.as_str()),
+            ReferenceBlock::Other => false,
+        };
+        if selected {
             output.push_str(block);
             output.push_str("\n\n");
         }
     }
     output
 }
-fn scalar_prelude() -> &'static str {
-    "pub type String = std::string::String;\npub type Integer = u64;\n"
-}
-fn write_crate(path: &Path, rust: &str, scalar_prelude_required: bool) {
+fn write_crate(path: &Path, rust: &str) {
     fs::create_dir_all(path.join("src")).unwrap();
     fs::create_dir_all(path.join("tests")).unwrap();
     fs::write(
@@ -204,15 +270,9 @@ fn write_crate(path: &Path, rust: &str, scalar_prelude_required: bool) {
         "[package]\nname=\"generated-spirit\"\nversion=\"0.1.0\"\nedition=\"2024\"\n[dependencies]\nrkyv={version=\"0.8\",features=[\"bytecheck\"]}\nsignal-frame={git=\"https://github.com/LiGoldragon/signal-frame.git\",rev=\"f46872e7e8edae5264c892443d415a273b231234\",default-features=false}\nnota={git=\"https://github.com/LiGoldragon/nota.git\",rev=\"7d0651a0e098efea5fe2578cb06d88e009d40ff0\",optional=true}\n[features]\ndefault=[]\nnota-text=[\"dep:nota\"]\n",
     )
     .unwrap();
-    fs::write(
-        path.join("src/lib.rs"),
-        if scalar_prelude_required {
-            format!("{}{}", scalar_prelude(), rust)
-        } else {
-            rust.to_owned()
-        },
-    )
-    .unwrap();
+    // The pipeline now emits the full module head (marker, scalar prelude, NOTA
+    // import), so the generated source is written verbatim — no prelude is injected.
+    fs::write(path.join("src/lib.rs"), rust).unwrap();
     fs::write(
         path.join("tests/behavior.rs"),
         r#"use generated_spirit::{Description,Entry,Input,Kind,Magnitude,Output,Query,RecordIdentifier,RecordSet,Summary,Topic,Topics};
@@ -361,7 +421,7 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
         reference_generated_rust(include_str!("fixtures/spirit-min.schema"), "spirit:lib");
     assert_eq!(
         rust,
-        select_declarations(
+        select_landed_classes(
             &reference_rust,
             &[
                 "Topic",
@@ -378,13 +438,14 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
                 "Output",
             ],
         ),
-        "all ten declarations preserve the free byte-exact witness"
+        "the module head (marker, scalar prelude, NOTA import) and all ten \
+         declarations preserve the free byte-exact witness"
     );
 
     let generated = temporary.path().join("generated");
     let reference = temporary.path().join("reference");
-    write_crate(&generated, &rust, true);
-    write_crate(&reference, &reference_rust, false);
+    write_crate(&generated, &rust);
+    write_crate(&reference, &reference_rust);
     for crate_path in [&generated, &reference] {
         for feature_arguments in [
             &["test", "--quiet", "--locked"][..],
@@ -504,13 +565,14 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
         reference_generated_rust(include_str!("fixtures/second-min.schema"), "second:lib");
     assert_eq!(
         second_event.rust,
-        select_declarations(
+        select_landed_classes(
             &second_reference,
             &[
                 "Weight", "Note", "Priority", "Parcel", "Ticket", "Input", "Output"
             ],
         ),
-        "the restarted pipeline emits the second document's declarations byte-exact"
+        "the restarted pipeline emits the second document's module head and \
+         declarations byte-exact"
     );
     assert_ne!(
         second_event.rust, rust,

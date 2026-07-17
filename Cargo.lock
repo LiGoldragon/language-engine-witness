@@ -113,15 +113,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-logos"
+version = "0.1.0"
+source = "git+https://github.com/LiGoldragon/core-logos.git?rev=f7dd7d6bf155c7f9fff790ae692964764909b433#f7dd7d6bf155c7f9fff790ae692964764909b433"
+dependencies = [
+ "content-identity",
+ "name-table",
+ "rkyv",
+ "thiserror",
+]
+
+[[package]]
 name = "core-nomos"
 version = "0.1.0"
 source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=d2f705808ed555cae0ead6a9181970ef1fdc0430#d2f705808ed555cae0ead6a9181970ef1fdc0430"
 dependencies = [
  "content-identity",
- "core-logos",
+ "core-logos 0.1.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=17cbd7596df203e0717fe079b7688cc60ec05e4b)",
  "core-schema",
  "name-table",
  "rkyv",
+ "thiserror",
+]
+
+[[package]]
+name = "core-nomos"
+version = "0.1.0"
+source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=db89b45b721edd7105539b057afdde3d833c1241#db89b45b721edd7105539b057afdde3d833c1241"
+dependencies = [
+ "content-identity",
+ "core-logos 0.1.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=f7dd7d6bf155c7f9fff790ae692964764909b433)",
+ "core-schema",
+ "name-table",
+ "rkyv",
+ "textual-rust 0.1.0 (git+https://github.com/LiGoldragon/textual-rust.git?rev=b80c52f6ef8e95d500fa026204b6acfe8f129937)",
  "thiserror",
 ]
 
@@ -459,8 +484,9 @@ checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 [[package]]
 name = "logos-engine"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/logos-engine.git?rev=43d8f279938e5c52ca1032a3467947095695cd1d#43d8f279938e5c52ca1032a3467947095695cd1d"
+source = "git+https://github.com/LiGoldragon/logos-engine.git?rev=e91713a2f16c2708bb1a0ac3708fa6d435db634a#e91713a2f16c2708bb1a0ac3708fa6d435db634a"
 dependencies = [
+ "core-nomos 0.1.0 (git+https://github.com/LiGoldragon/core-nomos.git?rev=db89b45b721edd7105539b057afdde3d833c1241)",
  "kameo 0.20.0 (git+https://github.com/LiGoldragon/kameo.git?rev=f491b45d7dcb55e5837eddde3d5d7ca8ceaa9f01)",
  "name-table",
  "notify",
@@ -468,7 +494,7 @@ dependencies = [
  "signal-logos",
  "signal-nomos",
  "signal-sema-storage",
- "textual-rust",
+ "textual-rust 0.1.0 (git+https://github.com/LiGoldragon/textual-rust.git?rev=571b76f5eedd47c5cdedbd1b00cbe5bb7bef3c7d)",
  "thiserror",
  "tokio",
 ]
@@ -526,7 +552,7 @@ name = "nomos-engine"
 version = "0.1.0"
 source = "git+https://github.com/LiGoldragon/nomos-engine.git?rev=458104b89a407b30715f264f023fc045109443cd#458104b89a407b30715f264f023fc045109443cd"
 dependencies = [
- "core-nomos",
+ "core-nomos 0.1.0 (git+https://github.com/LiGoldragon/core-nomos.git?rev=d2f705808ed555cae0ead6a9181970ef1fdc0430)",
  "kameo 0.20.0 (git+https://github.com/LiGoldragon/kameo.git?rev=f491b45d7dcb55e5837eddde3d5d7ca8ceaa9f01)",
  "name-table",
  "notify",
@@ -953,7 +979,7 @@ version = "0.1.0"
 source = "git+https://github.com/LiGoldragon/signal-sema-storage.git?rev=bd6cd6c4f2f020ad04427fc8ca86ca22d9cf4e6c#bd6cd6c4f2f020ad04427fc8ca86ca22d9cf4e6c"
 dependencies = [
  "content-identity",
- "core-logos",
+ "core-logos 0.1.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=17cbd7596df203e0717fe079b7688cc60ec05e4b)",
  "core-schema",
  "name-table",
  "rkyv",
@@ -1025,7 +1051,22 @@ version = "0.1.0"
 source = "git+https://github.com/LiGoldragon/textual-rust.git?rev=571b76f5eedd47c5cdedbd1b00cbe5bb7bef3c7d#571b76f5eedd47c5cdedbd1b00cbe5bb7bef3c7d"
 dependencies = [
  "content-identity",
- "core-logos",
+ "core-logos 0.1.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=17cbd7596df203e0717fe079b7688cc60ec05e4b)",
+ "name-table",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror",
+]
+
+[[package]]
+name = "textual-rust"
+version = "0.1.0"
+source = "git+https://github.com/LiGoldragon/textual-rust.git?rev=b80c52f6ef8e95d500fa026204b6acfe8f129937#b80c52f6ef8e95d500fa026204b6acfe8f129937"
+dependencies = [
+ "content-identity",
+ "core-logos 0.1.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=f7dd7d6bf155c7f9fff790ae692964764909b433)",
  "name-table",
  "prettyplease",
  "proc-macro2",
