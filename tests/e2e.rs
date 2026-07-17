@@ -164,11 +164,11 @@ fn declared_name(block: &str) -> Option<String> {
     }
     None
 }
-fn reference_generated_rust() -> String {
+fn reference_generated_rust(fixture: &str, component: &str) -> String {
     let schema = schema_language::SchemaEngine::default()
         .lower_source(
-            include_str!("fixtures/spirit-min.schema"),
-            schema_language::SchemaIdentity::new("spirit:lib", "0.1.0"),
+            fixture,
+            schema_language::SchemaIdentity::new(component, "0.1.0"),
         )
         .expect("legacy reference schema lowering");
     schema_rust::RustEmitter::default()
@@ -177,21 +177,7 @@ fn reference_generated_rust() -> String {
         .to_owned()
 }
 
-fn expected_generated_rust(reference: &str) -> String {
-    let names = [
-        "Topic",
-        "Topics",
-        "Description",
-        "Summary",
-        "RecordIdentifier",
-        "Entry",
-        "Query",
-        "RecordSet",
-        "Kind",
-        "Magnitude",
-        "Input",
-        "Output",
-    ];
+fn select_declarations(reference: &str, names: &[&str]) -> String {
     let mut output = String::new();
     for paragraph in reference.split("\n\n") {
         let block = paragraph.trim_matches('\n');
@@ -371,10 +357,27 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
         panic!("expected projection event, got {pushed:?}");
     };
     let rust = event.rust;
-    let reference_rust = reference_generated_rust();
+    let reference_rust =
+        reference_generated_rust(include_str!("fixtures/spirit-min.schema"), "spirit:lib");
     assert_eq!(
         rust,
-        expected_generated_rust(&reference_rust),
+        select_declarations(
+            &reference_rust,
+            &[
+                "Topic",
+                "Topics",
+                "Description",
+                "Summary",
+                "RecordIdentifier",
+                "Entry",
+                "Query",
+                "RecordSet",
+                "Kind",
+                "Magnitude",
+                "Input",
+                "Output",
+            ],
+        ),
         "all ten declarations preserve the free byte-exact witness"
     );
 
@@ -468,23 +471,75 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
             |request| signal_logos::encode_request(request).unwrap(),
         )
         .await;
-    let _: signal_logos::Reply = resumed_projection.read_reply().await;
-    let stored: signal_schema::Reply = exchange(
+    let resubscribed: signal_logos::Reply = resumed_projection.read_reply().await;
+    assert!(
+        matches!(resubscribed, signal_logos::Reply::Subscribed { .. }),
+        "the restarted Logos re-establishes the push subscription on its rebound socket"
+    );
+
+    let second_slot = SlotIdentifier(5);
+    let second_stored: signal_schema::Reply = exchange(
         &schema,
         &signal_schema::Request::IngestTypeSchema {
             scope: FixtureScope(1),
-            slot: SlotIdentifier(1),
-            legacy_text: include_str!("fixtures/spirit-min.schema").into(),
+            slot: second_slot,
+            legacy_text: include_str!("fixtures/second-min.schema").into(),
         },
         |request| signal_schema::encode_request(request).unwrap(),
     )
     .await;
-    assert!(matches!(stored, signal_schema::Reply::Stored(summary) if summary.version.0 == 2));
+    assert!(matches!(second_stored, signal_schema::Reply::Stored(_)));
+
     let resumed = tokio::time::timeout(
         Duration::from_secs(5),
         resumed_projection.read_reply::<signal_logos::Reply>(),
     )
     .await
-    .expect("all four restarted daemons resume push progression");
-    assert!(matches!(resumed, signal_logos::Reply::Event(_)));
+    .expect("all four restarted daemons resume push progression without polling");
+    let signal_logos::Reply::Event(second_event) = resumed else {
+        panic!("expected a second projection event, got {resumed:?}");
+    };
+
+    let second_reference =
+        reference_generated_rust(include_str!("fixtures/second-min.schema"), "second:lib");
+    assert_eq!(
+        second_event.rust,
+        select_declarations(
+            &second_reference,
+            &[
+                "Weight", "Note", "Priority", "Parcel", "Ticket", "Input", "Output"
+            ],
+        ),
+        "the restarted pipeline emits the second document's declarations byte-exact"
+    );
+    assert_ne!(
+        second_event.rust, rust,
+        "the genuinely second document generates distinct Rust from the first"
+    );
+    assert_eq!(second_event.source.key.kind, DocumentKind::Logos);
+    assert_eq!(second_event.source.key.slot, second_slot);
+
+    let second_recovered: signal_sema_storage::Reply = exchange(
+        &sema,
+        &signal_sema_storage::Request::Fetch {
+            key: DocumentKey {
+                scope: FixtureScope(1),
+                kind: DocumentKind::Logos,
+                slot: second_slot,
+            },
+            version: None,
+        },
+        |request| Wire::encode_request(request).unwrap(),
+    )
+    .await;
+    let signal_sema_storage::Reply::Document(Some(second_document)) = second_recovered else {
+        panic!("the second Logos document did not store durably in Sema")
+    };
+    assert_eq!(second_document.payload.kind(), DocumentKind::Logos);
+    assert_eq!(second_document.payload.validate(), Ok(()));
+    assert_eq!(
+        second_document.hash, second_event.logos,
+        "the durable second document is the one the restarted pipeline just pushed"
+    );
+    assert_eq!(second_document.hash, second_event.source.hash);
 }

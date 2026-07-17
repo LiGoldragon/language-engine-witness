@@ -1,0 +1,12 @@
+{}
+[Enqueue.Parcel]
+[Enqueued.Ticket]
+{
+  Weight.Integer
+  Note.String
+  Priority.[Low Normal Urgent]
+  Parcel.{ Weight Note Priority }
+  Ticket.Integer
+}
+{}
+{}
