@@ -1,5 +1,5 @@
 {
-  description = "core-nomos — the stringless Core of Nomos: macros as typed data lowering CoreSchema to CoreLogos, with the real generated Rust as the acceptance oracle";
+  description = "language-engine-witness — process-level acceptance witness for the minimal language engine: drives the schema, nomos, and logos daemons over live signal contracts and asserts the byte-exact generated-Rust closure";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -53,7 +53,7 @@
           });
         };
         devShells.default = pkgs.mkShell {
-          name = "core-nomos";
+          name = "language-engine-witness";
           packages = [ pkgs.jujutsu toolchain ];
         };
       });
