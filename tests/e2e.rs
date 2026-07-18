@@ -181,7 +181,7 @@ fn write_crate(path: &Path, rust: &str) {
     fs::write(path.join("src/lib.rs"), rust).unwrap();
     fs::write(
         path.join("tests/behavior.rs"),
-        r#"use generated_spirit::{Description,Entry,Input,Kind,Magnitude,Output,Query,RecordIdentifier,RecordSet,SignalFrameError,Summary,Topic,Topics};
+        r#"use generated_spirit::{Description,Entry,Frame,Input,Kind,Magnitude,Output,Query,RecordIdentifier,RecordSet,SignalFrameError,Summary,Topic,Topics};
 fn archived<T:rkyv::Archive>(){}
 fn public_fields(entry:&Entry,query:&Query){let _: &Topics=&entry.topics;let _: &Kind=&entry.kind;let _: &Description=&entry.description;let _: &Magnitude=&entry.magnitude;let _: &Topic=&query.topic;let _: &Kind=&query.kind;}
 #[test]
@@ -227,6 +227,35 @@ fn the_generated_codec_round_trips_every_ordinary_operation(){
  roundtrip!(Input,Input::observe(query));
  roundtrip!(Output,Output::record_accepted(7));
  roundtrip!(Output,Output::records_observed(vec![entry]));
+}
+
+// The ordinary-exchange envelope: the generated into_frame / into_reply_frame wrap a
+// payload into an ExchangeFrame (the two-way leg — no streaming/subscription body),
+// and that frame round-trips through the signal-frame codec byte-for-byte. This is the
+// working-programs witness for the Nomos-generated envelope surface the ported daemon
+// speaks.
+#[test]
+fn the_generated_envelope_wraps_and_round_trips_the_exchange_frame(){
+ let entry=Entry{topics:Topics::new(vec![Topic::new("north-star")]),kind:Kind::Decision,description:Description::new("the ported spirit speaks the wire"),magnitude:Magnitude::High};
+ let exchange=signal_frame::ExchangeIdentifier::new(signal_frame::SessionEpoch::new(1),signal_frame::ExchangeLane::Connector,signal_frame::LaneSequence::first());
+ // the request leg
+ let request_value=Input::record(entry.clone());
+ let expected_header=request_value.short_header();
+ let request_frame:Frame=request_value.into_frame(exchange);
+ assert_eq!(request_frame.short_header().value(),expected_header,"into_frame carries the operation's short header");
+ match request_frame.body(){signal_frame::ExchangeFrameBody::Request{exchange:carried,..}=>assert_eq!(*carried,exchange,"the request frame echoes the exchange identifier"),other=>panic!("into_frame did not build a request body: {other:?}")}
+ let request_bytes=request_frame.encode().expect("encode the request frame");
+ let request_round=Frame::decode(&request_bytes).expect("decode the request frame");
+ assert_eq!(request_round,request_frame,"the ordinary-exchange request frame round-trips through the signal-frame codec");
+ // the reply leg
+ let reply_value=Output::record_accepted(7);
+ let reply_header=reply_value.short_header();
+ let reply_frame:Frame=reply_value.into_reply_frame(exchange);
+ assert_eq!(reply_frame.short_header().value(),reply_header,"into_reply_frame carries the operation's short header");
+ match reply_frame.body(){signal_frame::ExchangeFrameBody::Reply{exchange:carried,..}=>assert_eq!(*carried,exchange,"the reply frame echoes the exchange identifier"),other=>panic!("into_reply_frame did not build a reply body: {other:?}")}
+ let reply_bytes=reply_frame.encode().expect("encode the reply frame");
+ let reply_round=Frame::decode(&reply_bytes).expect("decode the reply frame");
+ assert_eq!(reply_round,reply_frame,"the ordinary-exchange reply frame round-trips through the signal-frame codec");
 }
 "#,
     )
