@@ -7,16 +7,16 @@ license="MIT OR Apache-2.0"
 repository="https://github.com/LiGoldragon/language-engine-witness"
 description="Process-level acceptance witness for the minimal language engine"
 [dependencies]
-logos-engine={git="https://github.com/LiGoldragon/logos-engine.git",rev="62f2b28883af463833a1ce001a9bd14261a88302"}
+logos-engine={git="https://github.com/LiGoldragon/logos-engine.git",rev="55640060ec225f0ea47631fa53f60294f4284df5"}
 name-table={git="https://github.com/LiGoldragon/name-table.git",rev="c3237f77c087e6feab49d6cf34971cebc14a11e6"}
-nomos-engine={git="https://github.com/LiGoldragon/nomos-engine.git",rev="49c6d9d25fcc940a4a583660466279218ffc4d18"}
-schema-engine={git="https://github.com/LiGoldragon/schema-engine.git",rev="adccf9d29c982a35f8e8ea44146a1da96ed88254"}
-sema-storage={git="https://github.com/LiGoldragon/sema-storage.git",rev="dfe78a25ae263e823cef288d21e06c2b0be76173"}
+nomos-engine={git="https://github.com/LiGoldragon/nomos-engine.git",rev="814d494d48bd3c104e40ed68cd8d652b42df6713"}
+schema-engine={git="https://github.com/LiGoldragon/schema-engine.git",rev="9ba190dca112ca70c6383514793cc12e7913d488"}
+sema-storage={git="https://github.com/LiGoldragon/sema-storage.git",rev="269953164460cd842c1f3f8c9c93e4afe1e3628e"}
 signal-frame={git="https://github.com/LiGoldragon/signal-frame.git",rev="f46872e7e8edae5264c892443d415a273b231234",default-features=false}
-signal-logos={git="https://github.com/LiGoldragon/signal-logos.git",rev="95ab7ac0029b64c71b1730dba09d734f971af61a"}
-signal-nomos={git="https://github.com/LiGoldragon/signal-nomos.git",rev="49f6021739a5343acbb374ef5765f13f2692fe84"}
-signal-schema={git="https://github.com/LiGoldragon/signal-schema.git",rev="6e426b61cf97f6da977dd8a8cd690bf1914f850b"}
-signal-sema-storage={git="https://github.com/LiGoldragon/signal-sema-storage.git",rev="28aeafb2588ea01908b55b75c431e1aa0c238f6f"}
+signal-logos={git="https://github.com/LiGoldragon/signal-logos.git",rev="c248235c4adfea86b7754b7ce71b056bc90088b0"}
+signal-nomos={git="https://github.com/LiGoldragon/signal-nomos.git",rev="2c09647bb08825806c1485ba11aca844d4b60fff"}
+signal-schema={git="https://github.com/LiGoldragon/signal-schema.git",rev="bc68dc8fa1b16b00156ca36e2690fd77fda91a52"}
+signal-sema-storage={git="https://github.com/LiGoldragon/signal-sema-storage.git",rev="31ab48608a3c2eab0733dcb16a3351251a70789d"}
 rkyv={version="0.8",features=["bytecheck"]}
 tokio={version="1",features=["macros","rt-multi-thread","net","io-util","time"]}
 [dev-dependencies]
