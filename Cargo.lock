@@ -115,7 +115,7 @@ dependencies = [
 [[package]]
 name = "core-nomos"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=7c50f5283580f1552a60714e242340410f5b6dc1#7c50f5283580f1552a60714e242340410f5b6dc1"
+source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=cb9705de181b50053b4e634a3b9ad4798103164b#cb9705de181b50053b4e634a3b9ad4798103164b"
 dependencies = [
  "content-identity",
  "core-logos",
@@ -433,7 +433,7 @@ checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 [[package]]
 name = "logos-engine"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/logos-engine.git?rev=55640060ec225f0ea47631fa53f60294f4284df5#55640060ec225f0ea47631fa53f60294f4284df5"
+source = "git+https://github.com/LiGoldragon/logos-engine.git?rev=7f75d37513b967b9b8581aa707f513379bb74bac#7f75d37513b967b9b8581aa707f513379bb74bac"
 dependencies = [
  "core-nomos",
  "kameo",
@@ -499,7 +499,7 @@ dependencies = [
 [[package]]
 name = "nomos-engine"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/nomos-engine.git?rev=814d494d48bd3c104e40ed68cd8d652b42df6713#814d494d48bd3c104e40ed68cd8d652b42df6713"
+source = "git+https://github.com/LiGoldragon/nomos-engine.git?rev=526baea6af52a3c39b9fd84a42658014f3423bb4#526baea6af52a3c39b9fd84a42658014f3423bb4"
 dependencies = [
  "core-nomos",
  "kameo",
