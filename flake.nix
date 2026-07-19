@@ -8,10 +8,10 @@
       url = "github:LiGoldragon/rust-build";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    sema-storage.url = "github:LiGoldragon/sema-storage/11b22604df15351f1241e3bfd3d47bd9a1b4f362";
-    schema-engine.url = "github:LiGoldragon/schema-engine/3547697b6fc74e2e0ad7cabc7be7aaa469077b3c";
-    nomos-engine.url = "github:LiGoldragon/nomos-engine/11c3d91111edf0b631b280385ee4d06289347a5e";
-    logos-engine.url = "github:LiGoldragon/logos-engine/64af15774b97c6e2ef59efe0416d97b5fb376059";
+    sema-storage.url = "github:LiGoldragon/sema-storage/a2516082061063447ed5e346a0415118b4c0edfa";
+    schema-engine.url = "github:LiGoldragon/schema-engine/a16c6e41a985469dde1bcd2498e7ff0ce562f7d7";
+    nomos-engine.url = "github:LiGoldragon/nomos-engine/d10ea60b5170d74e785ba3d155a2d425163e617f";
+    logos-engine.url = "github:LiGoldragon/logos-engine/09f4d5a9d442f73356efe296483dbaef04e92b97";
   };
 
   outputs = { self, nixpkgs, flake-utils, rust-build, sema-storage, schema-engine, nomos-engine, logos-engine }:
