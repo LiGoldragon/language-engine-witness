@@ -35,7 +35,7 @@ impl Drop for Processes {
 }
 struct ProductionBinaries {
     sema: PathBuf,
-    schema: PathBuf,
+    ethos: PathBuf,
     nomos: PathBuf,
     logos: PathBuf,
 }
@@ -45,8 +45,8 @@ impl ProductionBinaries {
             sema: std::env::var_os("SEMA_STORAGE_BIN")
                 .expect("SEMA_STORAGE_BIN")
                 .into(),
-            schema: std::env::var_os("SCHEMA_ENGINE_BIN")
-                .expect("SCHEMA_ENGINE_BIN")
+            ethos: std::env::var_os("ETHOS_ENGINE_BIN")
+                .expect("ETHOS_ENGINE_BIN")
                 .into(),
             nomos: std::env::var_os("NOMOS_ENGINE_BIN")
                 .expect("NOMOS_ENGINE_BIN")
@@ -60,7 +60,7 @@ impl ProductionBinaries {
     fn spawn(&self, kind: &str, socket: &Path, state: &Path, upstream: Option<&Path>) -> Child {
         let program = match kind {
             "sema" => &self.sema,
-            "schema" => &self.schema,
+            "ethos" => &self.ethos,
             "nomos" => &self.nomos,
             "logos" => &self.logos,
             _ => panic!("unknown production binary: {kind}"),
@@ -284,7 +284,7 @@ fn emitted_manifest_and_locked_fixture_pin_the_same_revisions() {
 async fn one_document_pushes_through_four_processes_and_recovers() {
     let temporary = tempfile::tempdir().unwrap();
     let sema = temporary.path().join("sema.sock");
-    let schema = temporary.path().join("schema.sock");
+    let ethos = temporary.path().join("ethos.sock");
     let nomos = temporary.path().join("nomos.sock");
     let logos = temporary.path().join("logos.sock");
     let database = temporary.path().join("isolated.sema");
@@ -307,10 +307,10 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
     );
     processes
         .0
-        .push(binaries.spawn("schema", &schema, &sema, None));
+        .push(binaries.spawn("ethos", &ethos, &sema, None));
     processes
         .0
-        .push(binaries.spawn("nomos", &nomos, &sema, Some(&schema)));
+        .push(binaries.spawn("nomos", &nomos, &sema, Some(&ethos)));
     processes
         .0
         .push(binaries.spawn("logos", &logos, &sema, Some(&nomos)));
@@ -328,7 +328,7 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
     assert!(matches!(subscribed, signal_logos::Reply::Subscribed { .. }));
 
     for request in [
-        signal_schema::Request::StoreSignalContract {
+        signal_ethos::Request::StoreSignalContract {
             scope: FixtureScope(1),
             slot: SlotIdentifier(2),
             root: SignalContractRoot {
@@ -347,7 +347,7 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
                 names: NameTableBytes(Vec::new()),
             },
         },
-        signal_schema::Request::StoreNexusRuntime {
+        signal_ethos::Request::StoreNexusRuntime {
             scope: FixtureScope(1),
             slot: SlotIdentifier(3),
             root: NexusRuntimeRoot {
@@ -366,7 +366,7 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
                 names: NameTableBytes(Vec::new()),
             },
         },
-        signal_schema::Request::StoreSemaStorage {
+        signal_ethos::Request::StoreSemaStorage {
             scope: FixtureScope(1),
             slot: SlotIdentifier(4),
             root: SemaStorageRoot {
@@ -378,31 +378,31 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
             },
         },
     ] {
-        let reply: signal_schema::Reply = exchange(&schema, &request, |request| {
-            signal_schema::encode_request(request).unwrap()
+        let reply: signal_ethos::Reply = exchange(&ethos, &request, |request| {
+            signal_ethos::encode_request(request).unwrap()
         })
         .await;
-        assert!(matches!(reply, signal_schema::Reply::Stored(_)));
+        assert!(matches!(reply, signal_ethos::Reply::Stored(_)));
     }
 
-    let schema_reply: signal_schema::Reply = exchange(
-        &schema,
-        &signal_schema::Request::IngestTypeSchema {
+    let ethos_reply: signal_ethos::Reply = exchange(
+        &ethos,
+        &signal_ethos::Request::IngestTypeEthos {
             scope: FixtureScope(1),
             slot: SlotIdentifier(1),
-            legacy_text: include_str!("fixtures/spirit-min.schema").into(),
+            legacy_text: include_str!("fixtures/spirit-min.ethos").into(),
         },
-        |request| signal_schema::encode_request(request).unwrap(),
+        |request| signal_ethos::encode_request(request).unwrap(),
     )
     .await;
-    assert!(matches!(schema_reply, signal_schema::Reply::Stored(_)));
+    assert!(matches!(ethos_reply, signal_ethos::Reply::Stored(_)));
 
     let pushed = tokio::time::timeout(
         Duration::from_secs(5),
         projected.read_reply::<signal_logos::Reply>(),
     )
     .await
-    .expect("Schema → Nomos → Logos push completes without polling");
+    .expect("Ethos → Nomos → Logos push completes without polling");
     let signal_logos::Reply::Event(event) = pushed else {
         panic!("expected projection event, got {pushed:?}");
     };
@@ -410,7 +410,7 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
 
     // Working-programs bar: the pipeline's emitted Rust must compile under its
     // locked manifest and pass its public-surface behavior tests. The witness no
-    // longer byte-compares the emission against a schema-rust oracle projection.
+    // longer byte-compares the emission against the historical schema-rust oracle.
     let generated = temporary.path().join("generated");
     write_crate(&generated, &rust);
     for feature_arguments in [
@@ -430,7 +430,7 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
     }
 
     processes.terminate();
-    for socket in [&sema, &schema, &nomos, &logos] {
+    for socket in [&sema, &ethos, &nomos, &logos] {
         let _ = fs::remove_file(socket);
     }
     processes
@@ -438,10 +438,10 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
         .push(binaries.spawn("sema", &sema, &database, None));
     processes
         .0
-        .push(binaries.spawn("schema", &schema, &sema, None));
+        .push(binaries.spawn("ethos", &ethos, &sema, None));
     processes
         .0
-        .push(binaries.spawn("nomos", &nomos, &sema, Some(&schema)));
+        .push(binaries.spawn("nomos", &nomos, &sema, Some(&ethos)));
     processes
         .0
         .push(binaries.spawn("logos", &logos, &sema, Some(&nomos)));
@@ -504,17 +504,17 @@ async fn one_document_pushes_through_four_processes_and_recovers() {
     );
 
     let second_slot = SlotIdentifier(5);
-    let second_stored: signal_schema::Reply = exchange(
-        &schema,
-        &signal_schema::Request::IngestTypeSchema {
+    let second_stored: signal_ethos::Reply = exchange(
+        &ethos,
+        &signal_ethos::Request::IngestTypeEthos {
             scope: FixtureScope(1),
             slot: second_slot,
-            legacy_text: include_str!("fixtures/second-min.schema").into(),
+            legacy_text: include_str!("fixtures/second-min.ethos").into(),
         },
-        |request| signal_schema::encode_request(request).unwrap(),
+        |request| signal_ethos::encode_request(request).unwrap(),
     )
     .await;
-    assert!(matches!(second_stored, signal_schema::Reply::Stored(_)));
+    assert!(matches!(second_stored, signal_ethos::Reply::Stored(_)));
 
     let resumed = tokio::time::timeout(
         Duration::from_secs(5),
