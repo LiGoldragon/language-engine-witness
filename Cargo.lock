@@ -145,8 +145,8 @@ dependencies = [
 
 [[package]]
 name = "core-ethos"
-version = "0.15.0"
-source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=f7e4d127a8393e9ad4754e3cce79d1fca1a9e8c9#f7e4d127a8393e9ad4754e3cce79d1fca1a9e8c9"
+version = "0.16.0"
+source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=0840dbd96d250b15b750b5b17a3a7c86bacfb7ee#0840dbd96d250b15b750b5b17a3a7c86bacfb7ee"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.4.0",
@@ -155,7 +155,7 @@ dependencies = [
  "raw-discovery 0.4.0",
  "rkyv",
  "signal-sema-translator",
- "structural-codec 0.8.0",
+ "structural-codec 0.9.0",
  "thiserror",
 ]
 
@@ -172,17 +172,18 @@ dependencies = [
 
 [[package]]
 name = "core-logos"
-version = "0.7.0"
-source = "git+https://github.com/LiGoldragon/core-logos.git?rev=749408b13f5af64284dd9c596271232a89cc758b#749408b13f5af64284dd9c596271232a89cc758b"
+version = "0.8.0"
+source = "git+https://github.com/LiGoldragon/core-logos.git?rev=e4cefc413cfafbe589e64d961fba34457d214316#e4cefc413cfafbe589e64d961fba34457d214316"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.4.0",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "name-table 0.3.0",
  "protos",
+ "raw-discovery 0.4.0",
  "rkyv",
  "signal-sema-translator",
- "structural-codec 0.8.0",
+ "structural-codec 0.9.0",
  "thiserror",
 ]
 
@@ -196,25 +197,25 @@ dependencies = [
  "core-schema",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=c3237f77c087e6feab49d6cf34971cebc14a11e6)",
  "rkyv",
- "textual-rust 0.1.0",
+ "textual-rust",
  "thiserror",
 ]
 
 [[package]]
 name = "core-nomos"
-version = "0.12.0"
-source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=c8ae55678572b98cff88c08ab3a86b9b8cdcb0ee#c8ae55678572b98cff88c08ab3a86b9b8cdcb0ee"
+version = "0.14.0"
+source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=f7071fb9f8879d17cd2436ed14894799958e9b08#f7071fb9f8879d17cd2436ed14894799958e9b08"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.4.0",
- "core-ethos 0.15.0",
- "core-logos 0.7.0",
+ "core-ethos 0.16.0",
+ "core-logos 0.8.0",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "protos",
  "rkyv",
+ "rust-logos",
  "signal-sema-translator",
- "structural-codec 0.8.0",
- "textual-rust 0.2.0",
+ "structural-codec 0.9.0",
  "thiserror",
 ]
 
@@ -506,11 +507,11 @@ dependencies = [
 
 [[package]]
 name = "language-engine-witness"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
- "core-ethos 0.15.0",
- "core-logos 0.7.0",
- "core-nomos 0.12.0",
+ "core-ethos 0.16.0",
+ "core-logos 0.8.0",
+ "core-nomos 0.14.0",
  "ethos-engine",
  "logos-engine",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=c3237f77c087e6feab49d6cf34971cebc14a11e6)",
@@ -526,7 +527,7 @@ dependencies = [
  "signal-nomos",
  "signal-sema-storage",
  "signal-sema-translator",
- "structural-codec 0.8.0",
+ "structural-codec 0.9.0",
  "tempfile",
  "tokio",
 ]
@@ -562,7 +563,7 @@ dependencies = [
  "signal-logos",
  "signal-nomos",
  "signal-sema-storage",
- "textual-rust 0.1.0",
+ "textual-rust",
  "thiserror",
  "tokio",
 ]
@@ -868,16 +869,21 @@ dependencies = [
 
 [[package]]
 name = "rust-logos"
-version = "0.7.0"
-source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=9fc8427f11c624dd08ce684a224df1575bb540de#9fc8427f11c624dd08ce684a224df1575bb540de"
+version = "0.9.0"
+source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=c8e4ebc16dbea75880b3034a7c46cb6812ab4ef7#c8e4ebc16dbea75880b3034a7c46cb6812ab4ef7"
 dependencies = [
  "bs58",
- "core-logos 0.7.0",
+ "core-logos 0.8.0",
+ "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "name-table 0.3.0",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
  "raw-discovery 0.4.0",
  "rkyv",
  "signal-sema-translator",
- "structural-codec 0.8.0",
+ "structural-codec 0.9.0",
+ "syn 2.0.119",
  "thiserror",
 ]
 
@@ -1149,8 +1155,8 @@ dependencies = [
 
 [[package]]
 name = "structural-codec"
-version = "0.8.0"
-source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=5c11e1fb7f58444cd860207803d8f705e7415d71#5c11e1fb7f58444cd860207803d8f705e7415d71"
+version = "0.9.0"
+source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=31d2e4c14943802ce75a910edd54ea1796273f78#31d2e4c14943802ce75a910edd54ea1796273f78"
 dependencies = [
  "content-identity 0.3.0",
  "name-table 0.3.0",
@@ -1202,21 +1208,6 @@ dependencies = [
  "content-identity 0.1.0",
  "core-logos 0.1.0",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=c3237f77c087e6feab49d6cf34971cebc14a11e6)",
- "prettyplease",
- "proc-macro2",
- "quote",
- "syn 2.0.119",
- "thiserror",
-]
-
-[[package]]
-name = "textual-rust"
-version = "0.2.0"
-source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=b8dff1f4ed4acdfc6a205c2fb4549fb1b91a9892#b8dff1f4ed4acdfc6a205c2fb4549fb1b91a9892"
-dependencies = [
- "content-identity 0.3.0",
- "core-logos 0.7.0",
- "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "prettyplease",
  "proc-macro2",
  "quote",
