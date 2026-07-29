@@ -2,7 +2,8 @@
 []
 []
 {
-  CommitSequence.Integer
+  Identifiers.Vector.Integer
+  Status.{Pending Ready.{Integer} Batch.{Vector.Integer Integer}}
 }
 {}
 {}

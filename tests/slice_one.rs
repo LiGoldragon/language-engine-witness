@@ -1,16 +1,21 @@
 use std::{cell::RefCell, collections::BTreeMap, fs, process::Command};
 
 use slice_core_ethos::{
-    SixSlotGrammarIds, SixSlotNewtypeCodec, SliceOneBuiltinPriors, WholeEthos, WholeEthosItem,
+    SixSlotEthosCodec, SixSlotGrammarIds, SliceOneBuiltinPriors, WholeEthos, WholeEthosItem,
+    WholeEthosTypeApplication, WholeEthosTypeReference, WholeEthosVariantPayload,
     WholeEthosVisibility,
 };
-use slice_core_logos::{WholeLogos, WholeLogosItem, WholeLogosVisibility};
+use slice_core_logos::{
+    WholeLogos, WholeLogosEnumeration, WholeLogosItem, WholeLogosNewtype, WholeLogosTupleFields,
+    WholeLogosTypeApplication, WholeLogosTypeReference, WholeLogosVariant,
+    WholeLogosVariantPayload, WholeLogosVisibility,
+};
 use slice_core_nomos::SliceOneTransformation;
 use slice_name_table::{LocalEncodedId, Name};
 use slice_raw_discovery::SourceBound;
 use slice_rust_logos::{
-    RustEmittedIdentifier, RustLogos, RustNameProjectionTable, RustNewtypeVocabulary,
-    RustNewtypeVocabularyIds,
+    Error as RustLogosError, FixtureRustEmittedIdentifier, FixtureRustNameProjectionTable,
+    FixtureRustVocabulary, FixtureRustVocabularyIds, RustLogos,
 };
 use slice_signal_sema_translator::{VocabularyEncodedId, VocabularyRoot};
 use slice_structural_codec::{
@@ -39,8 +44,14 @@ struct Bindings {
 }
 
 impl Bindings {
-    fn bind_declaration(&mut self, source: &str, spelling: &str, encoded_id: VocabularyEncodedId) {
-        let bound = bound(source, spelling);
+    fn bind_declaration(
+        &mut self,
+        source: &str,
+        spelling: &str,
+        occurrence: usize,
+        encoded_id: VocabularyEncodedId,
+    ) {
+        let bound = bound(source, spelling, occurrence);
         self.names.insert(encoded_id.clone(), Name::new(spelling));
         self.declarations.insert(
             (bound.start(), bound.end()),
@@ -48,8 +59,14 @@ impl Bindings {
         );
     }
 
-    fn bind_reference(&mut self, source: &str, spelling: &str, encoded_id: VocabularyEncodedId) {
-        let bound = bound(source, spelling);
+    fn bind_reference(
+        &mut self,
+        source: &str,
+        spelling: &str,
+        occurrence: usize,
+        encoded_id: VocabularyEncodedId,
+    ) {
+        let bound = bound(source, spelling, occurrence);
         self.names.insert(encoded_id.clone(), Name::new(spelling));
         self.references.insert(
             (bound.start(), bound.end()),
@@ -90,8 +107,12 @@ impl DecodeNameBindings<VocabularyRoot> for Bindings {
     }
 }
 
-fn bound(source: &str, spelling: &str) -> SourceBound {
-    let start = source.find(spelling).expect("fixture spelling");
+fn bound(source: &str, spelling: &str, occurrence: usize) -> SourceBound {
+    let start = source
+        .match_indices(spelling)
+        .nth(occurrence)
+        .expect("fixture spelling occurrence")
+        .0;
     SourceBound::checked(source, start, start + spelling.len()).expect("fixture source bound")
 }
 
@@ -102,25 +123,80 @@ fn grammar_ids() -> SixSlotGrammarIds {
         issued(VocabularyRoot::Universal, &[40, 3]),
         issued(VocabularyRoot::Universal, &[40, 4]),
         issued(VocabularyRoot::Universal, &[40, 5]),
+        issued(VocabularyRoot::Universal, &[40, 6]),
+        issued(VocabularyRoot::Universal, &[40, 7]),
     )
     .expect("fixture grammar identities are Universal")
 }
 
+#[derive(Clone)]
+struct FixtureIdentities {
+    newtype: VocabularyEncodedId,
+    enumeration: VocabularyEncodedId,
+    unit_variant: VocabularyEncodedId,
+    single_variant: VocabularyEncodedId,
+    batch_variant: VocabularyEncodedId,
+    integer: VocabularyEncodedId,
+    vector: VocabularyEncodedId,
+}
+
+impl FixtureIdentities {
+    fn new() -> Self {
+        Self {
+            newtype: issued(VocabularyRoot::Universal, &[42, 7, 9]),
+            enumeration: issued(VocabularyRoot::Universal, &[42, 7, 10]),
+            unit_variant: issued(VocabularyRoot::Universal, &[42, 7, 10, 1]),
+            single_variant: issued(VocabularyRoot::Universal, &[42, 7, 10, 2]),
+            batch_variant: issued(VocabularyRoot::Universal, &[42, 7, 10, 3]),
+            integer: issued(VocabularyRoot::Universal, &[3]),
+            vector: issued(VocabularyRoot::Universal, &[4]),
+        }
+    }
+}
+
+fn ethos_bindings(ids: &FixtureIdentities) -> Bindings {
+    let mut bindings = Bindings::default();
+    for (spelling, encoded_id) in [
+        ("Identifiers", ids.newtype.clone()),
+        ("Status", ids.enumeration.clone()),
+        ("Pending", ids.unit_variant.clone()),
+        ("Ready", ids.single_variant.clone()),
+        ("Batch", ids.batch_variant.clone()),
+    ] {
+        bindings.bind_declaration(ETHOS_SOURCE, spelling, 0, encoded_id);
+    }
+    for occurrence in 0..2 {
+        bindings.bind_reference(ETHOS_SOURCE, "Vector", occurrence, ids.vector.clone());
+    }
+    for occurrence in 0..4 {
+        bindings.bind_reference(ETHOS_SOURCE, "Integer", occurrence, ids.integer.clone());
+    }
+    bindings
+}
+
 fn rust_codec() -> RustLogos {
-    let struct_keyword_type = issued(VocabularyRoot::Rust, &[10]);
-    let public_keyword_type = issued(VocabularyRoot::Rust, &[11]);
-    let declaration_type = issued(VocabularyRoot::Rust, &[12]);
-    let reference_type = issued(VocabularyRoot::Rust, &[13]);
+    let newtype_item = issued(VocabularyRoot::Rust, &[10]);
+    let enumeration_item = issued(VocabularyRoot::Rust, &[11]);
+    let variant = issued(VocabularyRoot::Rust, &[12]);
+    let tuple_field = issued(VocabularyRoot::Rust, &[13]);
+    let type_reference = issued(VocabularyRoot::Rust, &[14]);
     let struct_keyword = issued(VocabularyRoot::Rust, &[1]);
-    let public_keyword = issued(VocabularyRoot::Rust, &[2]);
+    let enum_keyword = issued(VocabularyRoot::Rust, &[2]);
+    let public_keyword = issued(VocabularyRoot::Rust, &[3]);
+    let comma = issued(VocabularyRoot::Rust, &[4]);
+    let semicolon = issued(VocabularyRoot::Rust, &[5]);
     let mut names = BTreeMap::new();
     for (encoded_id, spelling) in [
-        (struct_keyword_type.clone(), "StructKeywordToken"),
-        (public_keyword_type.clone(), "PublicKeywordToken"),
-        (declaration_type.clone(), "DeclarationToken"),
-        (reference_type.clone(), "ReferenceToken"),
+        (newtype_item.clone(), "NewtypeItemRecord"),
+        (enumeration_item.clone(), "EnumerationItemRecord"),
+        (variant.clone(), "VariantRecord"),
+        (tuple_field.clone(), "TupleFieldRecord"),
+        (type_reference.clone(), "TypeReferenceRecord"),
         (struct_keyword.clone(), "struct"),
+        (enum_keyword.clone(), "enum"),
         (public_keyword.clone(), "pub"),
+        (comma.clone(), ","),
+        (semicolon.clone(), ";"),
     ] {
         names.insert(encoded_id, Name::new(spelling));
     }
@@ -132,14 +208,18 @@ fn rust_codec() -> RustLogos {
         }
     }
 
-    let vocabulary = RustNewtypeVocabulary::seal(
-        RustNewtypeVocabularyIds::new(
-            struct_keyword_type,
-            public_keyword_type,
-            declaration_type,
-            reference_type,
+    let vocabulary = FixtureRustVocabulary::seal(
+        FixtureRustVocabularyIds::new(
+            newtype_item,
+            enumeration_item,
+            variant,
+            tuple_field,
+            type_reference,
             struct_keyword,
+            enum_keyword,
             public_keyword,
+            comma,
+            semicolon,
         ),
         &RustNames(names),
     )
@@ -147,12 +227,110 @@ fn rust_codec() -> RustLogos {
     RustLogos::new(vocabulary)
 }
 
+fn projections(ids: &FixtureIdentities) -> FixtureRustNameProjectionTable {
+    FixtureRustNameProjectionTable::try_from_entries([
+        (
+            ids.newtype.clone(),
+            FixtureRustEmittedIdentifier::try_new("Id16").expect("opaque Rust identifier"),
+        ),
+        (
+            ids.enumeration.clone(),
+            FixtureRustEmittedIdentifier::try_new("Id17").expect("opaque Rust identifier"),
+        ),
+        (
+            ids.unit_variant.clone(),
+            FixtureRustEmittedIdentifier::try_new("Id171").expect("opaque Rust identifier"),
+        ),
+        (
+            ids.single_variant.clone(),
+            FixtureRustEmittedIdentifier::try_new("Id172").expect("opaque Rust identifier"),
+        ),
+        (
+            ids.batch_variant.clone(),
+            FixtureRustEmittedIdentifier::try_new("Id173").expect("opaque Rust identifier"),
+        ),
+        (
+            ids.integer.clone(),
+            FixtureRustEmittedIdentifier::try_new("u64").expect("opaque Rust identifier"),
+        ),
+        (
+            ids.vector.clone(),
+            FixtureRustEmittedIdentifier::try_new("Vec").expect("opaque Rust identifier"),
+        ),
+    ])
+    .expect("fixture projections are one-to-one")
+}
+
+fn emitted_bindings(source: &str, ids: &FixtureIdentities) -> Bindings {
+    let mut bindings = Bindings::default();
+    for (spelling, encoded_id) in [
+        ("Id16", ids.newtype.clone()),
+        ("Id17", ids.enumeration.clone()),
+        ("Id171", ids.unit_variant.clone()),
+        ("Id172", ids.single_variant.clone()),
+        ("Id173", ids.batch_variant.clone()),
+    ] {
+        bindings.bind_declaration(source, spelling, 0, encoded_id);
+    }
+    for occurrence in 0..2 {
+        bindings.bind_reference(source, "Vec", occurrence, ids.vector.clone());
+    }
+    for occurrence in 0..4 {
+        bindings.bind_reference(source, "u64", occurrence, ids.integer.clone());
+    }
+    bindings
+}
+
+fn expected_logos(ids: &FixtureIdentities) -> WholeLogos {
+    let vector_integer = WholeLogosTypeReference::Application(WholeLogosTypeApplication::new(
+        ids.vector.clone(),
+        WholeLogosTypeReference::Identity(ids.integer.clone()),
+    ));
+    WholeLogos::new(vec![
+        WholeLogosItem::Newtype(WholeLogosNewtype::new(
+            WholeLogosVisibility::Public,
+            ids.newtype.clone(),
+            WholeLogosVisibility::Private,
+            vector_integer.clone(),
+        )),
+        WholeLogosItem::Enumeration(WholeLogosEnumeration::new(
+            WholeLogosVisibility::Public,
+            ids.enumeration.clone(),
+            vec![
+                WholeLogosVariant::new(ids.unit_variant.clone(), WholeLogosVariantPayload::Unit),
+                WholeLogosVariant::new(
+                    ids.single_variant.clone(),
+                    WholeLogosVariantPayload::Tuple(
+                        WholeLogosTupleFields::new(vec![WholeLogosTypeReference::Identity(
+                            ids.integer.clone(),
+                        )])
+                        .expect("single-field tuple"),
+                    ),
+                ),
+                WholeLogosVariant::new(
+                    ids.batch_variant.clone(),
+                    WholeLogosVariantPayload::Tuple(
+                        WholeLogosTupleFields::new(vec![
+                            vector_integer,
+                            WholeLogosTypeReference::Identity(ids.integer.clone()),
+                        ])
+                        .expect("two-field tuple"),
+                    ),
+                ),
+            ],
+        )),
+    ])
+}
+
 fn assert_six_source_bounds(bounds: &slice_core_ethos::SixSlotSourceBounds) {
     for (bound, expected) in [
         (bounds.imports(), "{}"),
         (bounds.input(), "[]"),
         (bounds.output(), "[]"),
-        (bounds.types(), "{\n  CommitSequence.Integer\n}"),
+        (
+            bounds.types(),
+            "{\n  Identifiers.Vector.Integer\n  Status.{Pending Ready.{Integer} Batch.{Vector.Integer Integer}}\n}",
+        ),
         (bounds.generics(), "{}"),
         (bounds.impls(), "{}"),
     ] {
@@ -160,43 +338,105 @@ fn assert_six_source_bounds(bounds: &slice_core_ethos::SixSlotSourceBounds) {
     }
 }
 
-#[test]
-fn six_slot_ethos_lowers_and_emits_a_working_integer_newtype() {
-    let declaration = issued(VocabularyRoot::Universal, &[42, 7, 9]);
-    let integer = issued(VocabularyRoot::Universal, &[3]);
-    let mut ethos_bindings = Bindings::default();
-    ethos_bindings.bind_declaration(ETHOS_SOURCE, "CommitSequence", declaration.clone());
-    ethos_bindings.bind_reference(ETHOS_SOURCE, "Integer", integer.clone());
+fn assert_query_bounds(actual: &[SourceBound], expected: &[SourceBound]) {
+    assert!(
+        actual.iter().all(|bound| expected.contains(bound)),
+        "the evaluator queried an unexpected source bound: {actual:?}"
+    );
+    assert!(
+        expected.iter().all(|bound| actual.contains(bound)),
+        "the evaluator skipped an expected source bound: {actual:?}"
+    );
+}
 
-    let codec = SixSlotNewtypeCodec::build(
+#[test]
+fn six_slot_ethos_lowers_and_emits_working_enum_and_application_shapes() {
+    let ids = FixtureIdentities::new();
+    let bindings = ethos_bindings(&ids);
+    let codec = SixSlotEthosCodec::build(
         grammar_ids(),
-        SliceOneBuiltinPriors::new(integer.clone()).expect("fixture Integer prior is Universal"),
+        SliceOneBuiltinPriors::new(ids.integer.clone(), ids.vector.clone())
+            .expect("fixture builtin priors are Universal"),
     )
     .expect("six-slot structuretree seals");
     let decoded = codec
-        .decode(ETHOS_SOURCE, &ethos_bindings)
+        .decode(ETHOS_SOURCE, &bindings)
         .expect("typed six-slot Ethos decode");
     assert_six_source_bounds(decoded.source_bounds());
-    assert_eq!(
-        ethos_bindings.declaration_queries.borrow().as_slice(),
-        [bound(ETHOS_SOURCE, "CommitSequence")]
+    assert_query_bounds(
+        bindings.declaration_queries.borrow().as_slice(),
+        &[
+            bound(ETHOS_SOURCE, "Identifiers", 0),
+            bound(ETHOS_SOURCE, "Status", 0),
+            bound(ETHOS_SOURCE, "Pending", 0),
+            bound(ETHOS_SOURCE, "Ready", 0),
+            bound(ETHOS_SOURCE, "Batch", 0),
+        ],
     );
-    assert_eq!(
-        ethos_bindings.reference_queries.borrow().as_slice(),
-        [bound(ETHOS_SOURCE, "Integer")]
+    assert_query_bounds(
+        bindings.reference_queries.borrow().as_slice(),
+        &[
+            bound(ETHOS_SOURCE, "Vector", 0),
+            bound(ETHOS_SOURCE, "Integer", 0),
+            bound(ETHOS_SOURCE, "Integer", 1),
+            bound(ETHOS_SOURCE, "Vector", 1),
+            bound(ETHOS_SOURCE, "Integer", 2),
+            bound(ETHOS_SOURCE, "Integer", 3),
+        ],
     );
 
-    let [WholeEthosItem::Newtype(ethos_newtype)] = decoded.ethos().items() else {
-        panic!("the document contains one typed newtype")
+    let [
+        WholeEthosItem::Newtype(ethos_newtype),
+        WholeEthosItem::Enumeration(ethos_enumeration),
+    ] = decoded.ethos().items()
+    else {
+        panic!("one application-backed newtype followed by one enumeration")
     };
-    assert_eq!(ethos_newtype.name(), &declaration);
+    assert_eq!(ethos_newtype.name(), &ids.newtype);
     assert_eq!(ethos_newtype.visibility(), &WholeEthosVisibility::Public);
     assert!(ethos_newtype.attributes().is_empty());
     assert_eq!(
         ethos_newtype.wrapped_field().visibility(),
         &WholeEthosVisibility::Private
     );
-    assert_eq!(ethos_newtype.wrapped_field().reference(), &integer);
+    assert_eq!(
+        ethos_newtype.wrapped_field().reference(),
+        &WholeEthosTypeReference::Application(WholeEthosTypeApplication::new(
+            ids.vector.clone(),
+            WholeEthosTypeReference::Identity(ids.integer.clone()),
+        ))
+    );
+    assert_eq!(ethos_enumeration.name(), &ids.enumeration);
+    assert_eq!(ethos_enumeration.variants().len(), 3);
+    assert_eq!(ethos_enumeration.variants()[0].name(), &ids.unit_variant);
+    assert_eq!(
+        ethos_enumeration.variants()[0].payload(),
+        &WholeEthosVariantPayload::Unit
+    );
+    assert_eq!(ethos_enumeration.variants()[1].name(), &ids.single_variant);
+    let WholeEthosVariantPayload::Tuple(single_fields) = ethos_enumeration.variants()[1].payload()
+    else {
+        panic!("Ready has one positional field")
+    };
+    assert_eq!(
+        single_fields.fields(),
+        &[WholeEthosTypeReference::Identity(ids.integer.clone())]
+    );
+    assert_eq!(ethos_enumeration.variants()[2].name(), &ids.batch_variant);
+    let WholeEthosVariantPayload::Tuple(batch_fields) = ethos_enumeration.variants()[2].payload()
+    else {
+        panic!("Batch has two positional fields")
+    };
+    assert_eq!(
+        batch_fields.fields(),
+        &[
+            WholeEthosTypeReference::Application(WholeEthosTypeApplication::new(
+                ids.vector.clone(),
+                WholeEthosTypeReference::Identity(ids.integer.clone()),
+            )),
+            WholeEthosTypeReference::Identity(ids.integer.clone()),
+        ]
+    );
 
     let ethos_archive = decoded
         .ethos()
@@ -207,46 +447,27 @@ fn six_slot_ethos_lowers_and_emits_a_working_integer_newtype() {
     assert_eq!(&restored_ethos, decoded.ethos());
 
     let logos = SliceOneTransformation::new().lower(&restored_ethos);
-    let [WholeLogosItem::Newtype(logos_newtype)] = logos.items() else {
-        panic!("Nomos preserves the one-item whole Logos")
-    };
-    assert_eq!(logos_newtype.name(), &declaration);
-    assert_eq!(logos_newtype.visibility(), &WholeLogosVisibility::Public);
-    assert_eq!(
-        logos_newtype.wrapped_visibility(),
-        &WholeLogosVisibility::Private
-    );
-    assert_eq!(logos_newtype.wrapped(), &integer);
-    let _whole_identity = logos
+    assert_eq!(logos, expected_logos(&ids));
+    let whole_identity = logos
         .content_identity()
         .expect("whole Logos has a pure-content identity");
-
     let logos_archive = logos.to_archive_bytes().expect("archive whole Logos");
     let restored_logos =
         WholeLogos::from_archive_bytes(&logos_archive).expect("restore whole Logos");
     assert_eq!(restored_logos, logos);
+    assert_eq!(
+        restored_logos
+            .content_identity()
+            .expect("restored whole Logos identity"),
+        whole_identity
+    );
 
     let rust = rust_codec();
-    let projections = RustNameProjectionTable::try_from_entries([
-        (
-            declaration.clone(),
-            RustEmittedIdentifier::try_new("SliceOneValue").expect("opaque Rust identifier"),
-        ),
-        (
-            integer.clone(),
-            RustEmittedIdentifier::try_new("u64").expect("opaque Rust identifier"),
-        ),
-    ])
-    .expect("fixture projections are one-to-one");
     let emitted = rust
-        .emit(&restored_logos, &projections)
+        .emit_fixture(&restored_logos, &projections(&ids))
         .expect("structural Rust emission");
-
-    let mut emitted_bindings = Bindings::default();
-    emitted_bindings.bind_declaration(&emitted, "SliceOneValue", declaration.clone());
-    emitted_bindings.bind_reference(&emitted, "u64", integer.clone());
     assert_eq!(
-        rust.decode(&emitted, &emitted_bindings)
+        rust.decode_fixture(&emitted, &emitted_bindings(&emitted, &ids))
             .expect("structural Rust decode"),
         restored_logos
     );
@@ -261,7 +482,7 @@ fn six_slot_ethos_lowers_and_emits_a_working_integer_newtype() {
     fs::write(
         temporary.path().join("src/main.rs"),
         format!(
-            "{emitted}\nfn main() {{ let value = SliceOneValue(41); println!(\"{{}}\", value.0); }}\n"
+            "{emitted}\nfn score(value: Id17) -> usize {{ match value {{ Id17::Id171 => 1, Id17::Id172(number) => number as usize, Id17::Id173(values, number) => values.len() + number as usize, }} }}\nfn main() {{ let wrapped = Id16(vec![1, 2, 3]); assert_eq!(wrapped.0.len(), 3); assert_eq!(score(Id17::Id171), 1); assert_eq!(score(Id17::Id172(41)), 41); let batch = score(Id17::Id173(vec![1, 2], 40)); assert_eq!(batch, 42); println!(\"{{}} {{}}\", wrapped.0.len(), batch); }}\n"
         ),
     )
     .expect("scratch generated source");
@@ -287,19 +508,34 @@ fn six_slot_ethos_lowers_and_emits_a_working_integer_newtype() {
     );
     assert_eq!(
         String::from_utf8(run.stdout).expect("scratch output is UTF-8"),
-        "41\n"
+        "3 42\n"
     );
+}
+
+#[test]
+fn incomplete_projection_refuses_without_returning_partial_rust() {
+    let ids = FixtureIdentities::new();
+    let incomplete = FixtureRustNameProjectionTable::try_from_entries([(
+        ids.newtype.clone(),
+        FixtureRustEmittedIdentifier::try_new("Id16").expect("opaque Rust identifier"),
+    )])
+    .expect("an incomplete fixture table is representable");
+
+    assert!(matches!(
+        rust_codec().emit_fixture(&expected_logos(&ids), &incomplete),
+        Err(RustLogosError::MissingProjection { .. })
+    ));
 }
 
 #[test]
 fn vertical_slice_pins_the_published_producers() {
     for revision in [
-        "d979778aa9d79199785f7b683f1029534aea3604",
-        "3cecb832e4209698038e64c537b66af8afcb66b2",
-        "b51805acf48d691514c159b364aaf9d854ee9ddd",
-        "28260415849a250e5e310c3563eda99ad1ff4232",
-        "a30c0c5b74125218795806d37395eea5b8b1338c",
-        "53f407e794e78866d6af3ef155b13d46d6973ffc",
+        "7290f65bbb5e7825ab2ca58340631d154d69d110",
+        "5c11e1fb7f58444cd860207803d8f705e7415d71",
+        "a79aeb9a0b2bb304d69d7392147639e13a3d58bc",
+        "3e4ae814f684b44c0aa45d5887c09a7d61d75db6",
+        "59d7364139f040601102051c8b8aa65fab1e53c4",
+        "c1a62852569457af423acc633c4ab392aca7e498",
     ] {
         assert!(
             MANIFEST.contains(revision),
