@@ -145,8 +145,8 @@ dependencies = [
 
 [[package]]
 name = "core-ethos"
-version = "0.16.0"
-source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=0840dbd96d250b15b750b5b17a3a7c86bacfb7ee#0840dbd96d250b15b750b5b17a3a7c86bacfb7ee"
+version = "0.17.0"
+source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=ba35c41c8a41cb3dacd24d87882e995ca4eb76ea#ba35c41c8a41cb3dacd24d87882e995ca4eb76ea"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.4.0",
@@ -155,7 +155,7 @@ dependencies = [
  "raw-discovery 0.4.0",
  "rkyv",
  "signal-sema-translator",
- "structural-codec 0.9.0",
+ "structural-codec 0.16.0",
  "thiserror",
 ]
 
@@ -172,8 +172,8 @@ dependencies = [
 
 [[package]]
 name = "core-logos"
-version = "0.8.0"
-source = "git+https://github.com/LiGoldragon/core-logos.git?rev=e4cefc413cfafbe589e64d961fba34457d214316#e4cefc413cfafbe589e64d961fba34457d214316"
+version = "0.15.0"
+source = "git+https://github.com/LiGoldragon/core-logos.git?rev=de13f3e5d674468b87c46c97dc06c385a861ec88#de13f3e5d674468b87c46c97dc06c385a861ec88"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.4.0",
@@ -183,7 +183,7 @@ dependencies = [
  "raw-discovery 0.4.0",
  "rkyv",
  "signal-sema-translator",
- "structural-codec 0.9.0",
+ "structural-codec 0.16.0",
  "thiserror",
 ]
 
@@ -203,19 +203,20 @@ dependencies = [
 
 [[package]]
 name = "core-nomos"
-version = "0.15.0"
-source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=55e72e3bd6de11325d6e4e7ea6dc29566bccc68d#55e72e3bd6de11325d6e4e7ea6dc29566bccc68d"
+version = "0.17.0"
+source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=ddbd7c5a9c33932ebb9c4c20b3ed7ed80a893822#ddbd7c5a9c33932ebb9c4c20b3ed7ed80a893822"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.4.0",
- "core-ethos 0.16.0",
- "core-logos 0.8.0",
+ "core-ethos 0.17.0",
+ "core-logos 0.15.0",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "protos",
+ "raw-discovery 0.4.0",
  "rkyv",
  "rust-logos",
  "signal-sema-translator",
- "structural-codec 0.9.0",
+ "structural-codec 0.16.0",
  "thiserror",
 ]
 
@@ -507,11 +508,11 @@ dependencies = [
 
 [[package]]
 name = "language-engine-witness"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
- "core-ethos 0.16.0",
- "core-logos 0.8.0",
- "core-nomos 0.15.0",
+ "core-ethos 0.17.0",
+ "core-logos 0.15.0",
+ "core-nomos 0.17.0",
  "ethos-engine",
  "logos-engine",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=c3237f77c087e6feab49d6cf34971cebc14a11e6)",
@@ -527,7 +528,7 @@ dependencies = [
  "signal-nomos",
  "signal-sema-storage",
  "signal-sema-translator",
- "structural-codec 0.9.0",
+ "structural-codec 0.16.0",
  "tempfile",
  "tokio",
 ]
@@ -869,11 +870,11 @@ dependencies = [
 
 [[package]]
 name = "rust-logos"
-version = "0.9.0"
-source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=c8e4ebc16dbea75880b3034a7c46cb6812ab4ef7#c8e4ebc16dbea75880b3034a7c46cb6812ab4ef7"
+version = "0.15.0"
+source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=b008a195feaba2dfa003ce9de22a921169e886e2#b008a195feaba2dfa003ce9de22a921169e886e2"
 dependencies = [
  "bs58",
- "core-logos 0.8.0",
+ "core-logos 0.15.0",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "name-table 0.3.0",
  "prettyplease",
@@ -882,7 +883,7 @@ dependencies = [
  "raw-discovery 0.4.0",
  "rkyv",
  "signal-sema-translator",
- "structural-codec 0.9.0",
+ "structural-codec 0.16.0",
  "syn 2.0.119",
  "thiserror",
 ]
@@ -1155,8 +1156,8 @@ dependencies = [
 
 [[package]]
 name = "structural-codec"
-version = "0.9.0"
-source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=31d2e4c14943802ce75a910edd54ea1796273f78#31d2e4c14943802ce75a910edd54ea1796273f78"
+version = "0.16.0"
+source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=fc1b23b4a66a7d3ca7c3c367830ee6ca31193f48#fc1b23b4a66a7d3ca7c3c367830ee6ca31193f48"
 dependencies = [
  "content-identity 0.3.0",
  "name-table 0.3.0",
