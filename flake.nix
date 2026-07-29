@@ -28,24 +28,24 @@
         src = pkgs.lib.cleanSource ./.;
         commonArguments = { inherit src; strictDeps = true; };
         cargoArtifacts = craneLib.buildDepsOnly commonArguments;
+        processTestArguments = {
+          nativeBuildInputs = [
+            sema-storage.packages.${system}.default
+            ethos-engine.packages.${system}.default
+            nomos-engine.packages.${system}.default
+            logos-engine.packages.${system}.default
+          ];
+          SEMA_STORAGE_BIN = "${sema-storage.packages.${system}.default}/bin/sema-storage";
+          ETHOS_ENGINE_BIN = "${ethos-engine.packages.${system}.default}/bin/ethos-engine";
+          NOMOS_ENGINE_BIN = "${nomos-engine.packages.${system}.default}/bin/nomos-engine";
+          LOGOS_ENGINE_BIN = "${logos-engine.packages.${system}.default}/bin/logos-engine";
+        };
       in
       {
-        packages.default = craneLib.buildPackage (commonArguments // { inherit cargoArtifacts; });
+        packages.default = craneLib.buildPackage (commonArguments // { inherit cargoArtifacts; } // processTestArguments);
         checks = {
           build = craneLib.cargoBuild (commonArguments // { inherit cargoArtifacts; });
-          test = craneLib.cargoTest (commonArguments // {
-            inherit cargoArtifacts;
-            nativeBuildInputs = [
-              sema-storage.packages.${system}.default
-              ethos-engine.packages.${system}.default
-              nomos-engine.packages.${system}.default
-              logos-engine.packages.${system}.default
-            ];
-            SEMA_STORAGE_BIN = "${sema-storage.packages.${system}.default}/bin/sema-storage";
-            ETHOS_ENGINE_BIN = "${ethos-engine.packages.${system}.default}/bin/ethos-engine";
-            NOMOS_ENGINE_BIN = "${nomos-engine.packages.${system}.default}/bin/nomos-engine";
-            LOGOS_ENGINE_BIN = "${logos-engine.packages.${system}.default}/bin/logos-engine";
-          });
+          test = craneLib.cargoTest (commonArguments // { inherit cargoArtifacts; } // processTestArguments);
           doc = craneLib.cargoDoc (commonArguments // {
             inherit cargoArtifacts;
             RUSTDOCFLAGS = "-D warnings";

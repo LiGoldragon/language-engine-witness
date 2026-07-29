@@ -22,11 +22,11 @@ tokio={version="1",features=["macros","rt-multi-thread","net","io-util","time"]}
 [dev-dependencies]
 tempfile="3"
 slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="bbeca83c6980cc8a415f46fffc6e403fedf10b6b"}
-slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="3e4ae814f684b44c0aa45d5887c09a7d61d75db6"}
-slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="46ea00dba9b03bce525e03266f1262ae693d4902"}
+slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="997e1595601be851ad14617384302e3ee61a658f"}
+slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="98aa5f69eae269a4a7503388858d18108c99ac83"}
 slice-name-table={package="name-table",git="https://github.com/LiGoldragon/name-table.git",rev="50cb4bb53ae2dc4f2516f6912be328ef98ae49f8"}
 slice-raw-discovery={package="raw-discovery",git="https://github.com/LiGoldragon/raw-discovery.git",rev="7290f65bbb5e7825ab2ca58340631d154d69d110"}
-slice-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="4d637fc977ba0beeed9bf9d68a838a2a71ca9b57"}
+slice-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="cdd9c23b793a8687a9ce2f9a7431879a1d3830a2"}
 slice-signal-sema-translator={package="signal-sema-translator",git="https://github.com/LiGoldragon/signal-sema-translator.git",rev="8c504ba7aa8dbdc5edf7daadbb862bbdaa5613be"}
 slice-structural-codec={package="structural-codec",git="https://github.com/LiGoldragon/structural-codec.git",rev="5c11e1fb7f58444cd860207803d8f705e7415d71"}
 [patch."https://github.com/LiGoldragon/kameo.git?branch=main"]

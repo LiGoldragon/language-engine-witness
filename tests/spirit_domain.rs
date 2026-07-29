@@ -7,12 +7,11 @@ use slice_core_ethos::{
 use slice_core_logos::{
     WholeLogos, WholeLogosItem, WholeLogosTypeReference, WholeLogosVariantPayload,
 };
-use slice_core_nomos::SliceOneTransformation;
+use slice_core_nomos::{SliceOneTransformation, SliceOneVocabularyReferenceMapping};
 use slice_name_table::{LocalEncodedId, Name};
 use slice_raw_discovery::SourceBound;
 use slice_rust_logos::{
-    FixtureRustEmittedIdentifier, FixtureRustNameProjectionTable, FixtureRustVocabulary,
-    FixtureRustVocabularyIds, RustLogos,
+    FixtureRustVocabulary, FixtureRustVocabularyIds, RustEncodedIdCodec, RustLogos,
 };
 use slice_signal_sema_translator::{VocabularyEncodedId, VocabularyRoot};
 use slice_structural_codec::{
@@ -258,6 +257,7 @@ struct FixtureIdentities {
     integer: VocabularyEncodedId,
     vector: VocabularyEncodedId,
     scope_of: VocabularyEncodedId,
+    rust_vector: VocabularyEncodedId,
 }
 
 impl FixtureIdentities {
@@ -285,6 +285,7 @@ impl FixtureIdentities {
             integer: issued(&[3]),
             vector: issued(&[4]),
             scope_of: issued(&[5]),
+            rust_vector: issued_rust(&[20]),
         }
     }
 
@@ -416,6 +417,19 @@ fn ethos_bindings(inventory: &FixtureInventory, identities: &FixtureIdentities) 
         }
     }
     bindings
+        .names
+        .insert(identities.rust_vector.clone(), Name::new("Vec"));
+    bindings
+}
+
+fn slice_transformation(identities: &FixtureIdentities) -> SliceOneTransformation {
+    let vector = SliceOneVocabularyReferenceMapping::new(
+        identities.vector.clone(),
+        identities.rust_vector.clone(),
+    )
+    .expect("Universal Vector maps to immutable Rust Vec");
+    SliceOneTransformation::with_reference_mappings(vec![vector])
+        .expect("Spirit mapping sources are unique")
 }
 
 fn grammar_ids() -> SixSlotGrammarIds {
@@ -493,73 +507,67 @@ fn issued_rust(chain: &[u16]) -> VocabularyEncodedId {
     .expect("fixture carries a complete Rust chain")
 }
 
-struct RustFixtureProjections {
-    table: FixtureRustNameProjectionTable,
-    spellings: BTreeMap<VocabularyEncodedId, String>,
-}
+struct ProductionSpellings(BTreeMap<VocabularyEncodedId, String>);
 
-impl RustFixtureProjections {
-    fn build(inventory: &FixtureInventory, identities: &FixtureIdentities) -> Self {
-        let mut entries = Vec::new();
-        let mut spellings = BTreeMap::new();
-        for (item_index, item) in inventory.items().iter().enumerate() {
-            let item_id = identities.declaration(item.name());
-            let item_spelling = format!("FixtureTypeA{item_index:03}X");
-            Self::push(&mut entries, &mut spellings, item_id, item_spelling);
-            for (variant_index, variant) in item.variants().iter().enumerate() {
-                Self::push(
-                    &mut entries,
-                    &mut spellings,
-                    identities.declaration(&variant.name),
-                    format!("FixtureVariantA{item_index:03}B{variant_index:03}X"),
-                );
+impl ProductionSpellings {
+    fn build(logos: &WholeLogos, allocated: &Bindings) -> Self {
+        let mut spellings = Self(BTreeMap::new());
+        for item in logos.items() {
+            match item {
+                WholeLogosItem::Newtype(newtype) => {
+                    spellings.insert(newtype.name(), allocated);
+                    spellings.insert_reference(newtype.wrapped(), allocated);
+                }
+                WholeLogosItem::Enumeration(enumeration) => {
+                    spellings.insert(enumeration.name(), allocated);
+                    for variant in enumeration.variants() {
+                        spellings.insert(variant.name(), allocated);
+                        if let WholeLogosVariantPayload::Tuple(fields) = variant.payload() {
+                            for reference in fields.fields() {
+                                spellings.insert_reference(reference, allocated);
+                            }
+                        }
+                    }
+                }
             }
         }
-        Self::push(
-            &mut entries,
-            &mut spellings,
-            identities.vector.clone(),
-            "Vec".to_owned(),
-        );
-        Self::push(
-            &mut entries,
-            &mut spellings,
-            identities.scope_of.clone(),
-            "ScopeOf".to_owned(),
-        );
-        Self {
-            table: FixtureRustNameProjectionTable::try_from_entries(entries)
-                .expect("fixture projections are one-to-one"),
-            spellings,
+        spellings
+    }
+
+    fn insert_reference(&mut self, reference: &WholeLogosTypeReference, allocated: &Bindings) {
+        match reference {
+            WholeLogosTypeReference::Identity(encoded_id) => {
+                self.insert(encoded_id, allocated);
+            }
+            WholeLogosTypeReference::Application(application) => {
+                self.insert(application.head(), allocated);
+                self.insert_reference(application.payload(), allocated);
+            }
         }
     }
 
-    fn push(
-        entries: &mut Vec<(VocabularyEncodedId, FixtureRustEmittedIdentifier)>,
-        spellings: &mut BTreeMap<VocabularyEncodedId, String>,
-        encoded_id: VocabularyEncodedId,
-        spelling: String,
-    ) {
-        entries.push((
-            encoded_id.clone(),
-            FixtureRustEmittedIdentifier::try_new(spelling.as_str())
-                .expect("opaque fixture Rust identifier"),
-        ));
-        spellings.insert(encoded_id, spelling);
+    fn insert(&mut self, encoded_id: &VocabularyEncodedId, allocated: &Bindings) {
+        let spelling = match encoded_id.root_variant() {
+            VocabularyRoot::Universal => RustEncodedIdCodec::encode(encoded_id),
+            VocabularyRoot::Rust => allocated
+                .resolve(encoded_id)
+                .expect("Rust vocabulary identity is allocated")
+                .as_str()
+                .to_owned(),
+        };
+        if let Some(previous) = self.0.insert(encoded_id.clone(), spelling.clone()) {
+            assert_eq!(previous, spelling, "one identity has one emitted spelling");
+        }
     }
 
     fn spelling(&self, encoded_id: &VocabularyEncodedId) -> &str {
-        self.spellings[encoded_id].as_str()
+        self.0[encoded_id].as_str()
     }
 }
 
-fn emitted_bindings(
-    source: &str,
-    logos: &WholeLogos,
-    projections: &RustFixtureProjections,
-) -> Bindings {
+fn emitted_bindings(source: &str, logos: &WholeLogos, spellings: &ProductionSpellings) -> Bindings {
     let mut bindings = Bindings::default();
-    for (encoded_id, spelling) in &projections.spellings {
+    for (encoded_id, spelling) in &spellings.0 {
         for bound in identifier_bounds(source, spelling) {
             bindings.bind_reference_bound(spelling, bound, encoded_id.clone());
         }
@@ -567,7 +575,7 @@ fn emitted_bindings(
     for item in logos.items() {
         match item {
             WholeLogosItem::Newtype(newtype) => {
-                let spelling = projections.spelling(newtype.name());
+                let spelling = spellings.spelling(newtype.name());
                 bindings.bind_declaration_bound(
                     spelling,
                     declaration_bound(source, "struct", spelling),
@@ -575,14 +583,14 @@ fn emitted_bindings(
                 );
             }
             WholeLogosItem::Enumeration(enumeration) => {
-                let spelling = projections.spelling(enumeration.name());
+                let spelling = spellings.spelling(enumeration.name());
                 bindings.bind_declaration_bound(
                     spelling,
                     declaration_bound(source, "enum", spelling),
                     enumeration.name().clone(),
                 );
                 for variant in enumeration.variants() {
-                    let spelling = projections.spelling(variant.name());
+                    let spelling = spellings.spelling(variant.name());
                     let occurrences = identifier_bounds(source, spelling);
                     let [bound] = occurrences.as_slice() else {
                         panic!("fixture variant projection must occur exactly once")
@@ -644,11 +652,7 @@ fn executable_enumerations(logos: &WholeLogos) -> WholeLogos {
     )
 }
 
-fn behavior_source(
-    emitted: &str,
-    logos: &WholeLogos,
-    projections: &RustFixtureProjections,
-) -> String {
+fn behavior_source(emitted: &str, logos: &WholeLogos, spellings: &ProductionSpellings) -> String {
     let mut source = String::from(emitted);
     source.push_str("\nfn main() {\n");
     let mut exercised = 0;
@@ -656,9 +660,9 @@ fn behavior_source(
         let WholeLogosItem::Enumeration(enumeration) = item else {
             continue;
         };
-        let enumeration_spelling = projections.spelling(enumeration.name());
+        let enumeration_spelling = spellings.spelling(enumeration.name());
         for variant in enumeration.variants() {
-            let variant_spelling = projections.spelling(variant.name());
+            let variant_spelling = spellings.spelling(variant.name());
             match variant.payload() {
                 WholeLogosVariantPayload::Unit => {
                     source.push_str(
@@ -673,7 +677,7 @@ fn behavior_source(
                     source.push_str(
                         format!(
                             "    let _ = {enumeration_spelling}::{variant_spelling}({});\n",
-                            construct_enumeration_value(logos, payload, projections),
+                            construct_enumeration_value(logos, payload, spellings),
                         )
                         .as_str(),
                     );
@@ -689,7 +693,7 @@ fn behavior_source(
 fn construct_enumeration_value(
     logos: &WholeLogos,
     identity: &VocabularyEncodedId,
-    projections: &RustFixtureProjections,
+    spellings: &ProductionSpellings,
 ) -> String {
     let enumeration = logos
         .items()
@@ -708,8 +712,8 @@ fn construct_enumeration_value(
         .unwrap_or_else(|| &enumeration.variants()[0]);
     let prefix = format!(
         "{}::{}",
-        projections.spelling(identity),
-        projections.spelling(variant.name()),
+        spellings.spelling(identity),
+        spellings.spelling(variant.name()),
     );
     match variant.payload() {
         WholeLogosVariantPayload::Unit => prefix,
@@ -719,14 +723,14 @@ fn construct_enumeration_value(
             };
             format!(
                 "{prefix}({})",
-                construct_enumeration_value(logos, payload, projections)
+                construct_enumeration_value(logos, payload, spellings)
             )
         }
     }
 }
 
 #[test]
-fn complete_spirit_domain_reaches_durable_logos_and_structural_rust() {
+fn complete_spirit_domain_reaches_durable_logos_and_production_rust() {
     let inventory = FixtureInventory::parse(ETHOS_SOURCE);
     assert_eq!(inventory.items().len(), 41);
     assert_eq!(inventory.enumeration_count(), 38);
@@ -782,7 +786,7 @@ fn complete_spirit_domain_reaches_durable_logos_and_structural_rust() {
         WholeEthos::from_archive_bytes(&ethos_archive).expect("restart complete Spirit Ethos");
     assert_eq!(&restored_ethos, decoded.ethos());
 
-    let logos = SliceOneTransformation::new().lower(&restored_ethos);
+    let logos = slice_transformation(&identities).lower(&restored_ethos);
     assert_eq!(logos.items().len(), 41);
     let identity = logos
         .content_identity()
@@ -800,30 +804,35 @@ fn complete_spirit_domain_reaches_durable_logos_and_structural_rust() {
         identity
     );
 
-    let projections = RustFixtureProjections::build(&inventory, &identities);
+    let spellings = ProductionSpellings::build(&restored_logos, &bindings);
     let rust = rust_codec();
     let emitted = rust
-        .emit_fixture(&restored_logos, &projections.table)
-        .expect("structural Rust emission for every Spirit declaration");
+        .emit(&restored_logos, &bindings)
+        .expect("production Rust emission for every Spirit declaration");
+    assert!(emitted.contains(&RustEncodedIdCodec::encode(&identities.scope_of)));
+    assert!(emitted.contains("Vec"));
+    assert!(!emitted.contains("FixtureType"));
+    assert!(!emitted.contains("ScopeOf"));
     assert_eq!(
         rust.decode_fixture(
             &emitted,
-            &emitted_bindings(&emitted, &restored_logos, &projections),
+            &emitted_bindings(&emitted, &restored_logos, &spellings),
         )
-        .expect("structural Rust decode for every Spirit declaration"),
+        .expect("production Rust decode for every Spirit declaration"),
         restored_logos
     );
 
     let executable = executable_enumerations(&restored_logos);
+    let executable_spellings = ProductionSpellings::build(&executable, &bindings);
     let executable_rust = rust
-        .emit_fixture(&executable, &projections.table)
-        .expect("structural Rust emission for Spirit enumerations");
+        .emit(&executable, &bindings)
+        .expect("production Rust emission for Spirit enumerations");
     assert_eq!(
         rust.decode_fixture(
             &executable_rust,
-            &emitted_bindings(&executable_rust, &executable, &projections),
+            &emitted_bindings(&executable_rust, &executable, &executable_spellings),
         )
-        .expect("structural Rust decode for Spirit enumerations"),
+        .expect("production Rust decode for Spirit enumerations"),
         executable
     );
     let temporary = tempfile::tempdir().expect("scratch crate directory");
@@ -835,7 +844,7 @@ fn complete_spirit_domain_reaches_durable_logos_and_structural_rust() {
     .expect("scratch manifest");
     fs::write(
         temporary.path().join("src/main.rs"),
-        behavior_source(&executable_rust, &executable, &projections),
+        behavior_source(&executable_rust, &executable, &executable_spellings),
     )
     .expect("scratch generated source and behavior harness");
     let run = Command::new("cargo")
@@ -913,6 +922,50 @@ fn scope_of_stays_typed_application_data_without_a_runtime_substitute() {
                 slice_core_ethos::WholeEthosTypeApplication::new(
                     identities.vector.clone(),
                     WholeEthosTypeReference::Identity(identities.item("DomainScope")),
+                )
+            )
+        );
+    }
+
+    let logos = slice_transformation(&identities).lower(decoded.ethos());
+    let domain_scope = logos
+        .items()
+        .iter()
+        .find_map(|item| match item {
+            WholeLogosItem::Newtype(newtype)
+                if newtype.name() == &identities.item("DomainScope") =>
+            {
+                Some(newtype)
+            }
+            _ => None,
+        })
+        .expect("lowered DomainScope declaration");
+    assert_eq!(
+        domain_scope.wrapped(),
+        &WholeLogosTypeReference::Application(slice_core_logos::WholeLogosTypeApplication::new(
+            identities.scope_of.clone(),
+            WholeLogosTypeReference::Identity(identities.item("Domain")),
+        ))
+    );
+    for spelling in ["DomainScopes", "ScopeSet"] {
+        let vector = logos
+            .items()
+            .iter()
+            .find_map(|item| match item {
+                WholeLogosItem::Newtype(newtype)
+                    if newtype.name() == &identities.item(spelling) =>
+                {
+                    Some(newtype)
+                }
+                _ => None,
+            })
+            .expect("lowered Vector application declaration");
+        assert_eq!(
+            vector.wrapped(),
+            &WholeLogosTypeReference::Application(
+                slice_core_logos::WholeLogosTypeApplication::new(
+                    identities.rust_vector.clone(),
+                    WholeLogosTypeReference::Identity(identities.item("DomainScope")),
                 )
             )
         );

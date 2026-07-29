@@ -533,9 +533,9 @@ fn vertical_slice_pins_the_published_producers() {
         "7290f65bbb5e7825ab2ca58340631d154d69d110",
         "5c11e1fb7f58444cd860207803d8f705e7415d71",
         "bbeca83c6980cc8a415f46fffc6e403fedf10b6b",
-        "3e4ae814f684b44c0aa45d5887c09a7d61d75db6",
-        "46ea00dba9b03bce525e03266f1262ae693d4902",
-        "4d637fc977ba0beeed9bf9d68a838a2a71ca9b57",
+        "997e1595601be851ad14617384302e3ee61a658f",
+        "98aa5f69eae269a4a7503388858d18108c99ac83",
+        "cdd9c23b793a8687a9ce2f9a7431879a1d3830a2",
     ] {
         assert!(
             MANIFEST.contains(revision),

@@ -12,11 +12,15 @@ compares the two sources without evaluating or linking the legacy
 `signal-domain` crate. Its component-side witness assigns opaque process-local
 Universal chains before decode, then carries all 41 items and 369 variants
 through typed Ethos, archive/restart, direct Nomos, Whole Logos identity and
-archive/restart, and structural Rust emit/decode. The 38 authored enumerations
-compile and all 369 emitted variants are constructed in a scratch Cargo
-program. The three application newtypes remain present in the full structural
-carrier and Rust round trip. `DomainScope.ScopeOf.Domain` has no approved
-runtime transformation on this path, and both `Vector.DomainScope` declarations
-depend on that missing output, so none of the three is substituted or claimed
-as scratch-Cargo behavior. The fixture chains and Rust names are test
-projections only; they are not the open production encoded-chain spelling.
+archive/restart, typed Universal-Vector-to-Rust-Vec transformation data, and
+production structural Rust emit/decode. Universal declarations and references
+use `rust-logos`' canonical Base58BTC encoding of their complete chains; the
+two Vector application heads use the immutable Rust spelling `Vec`. The 38
+authored enumerations compile under those production names and all 369 emitted
+variants are constructed in a scratch Cargo program. The three application
+newtypes remain present in the full structural carrier and Rust round trip.
+`DomainScope.ScopeOf.Domain` has no approved synthesis mechanism on this path,
+and both `Vec<DomainScope>` declarations depend on that missing output, so none
+of the three is substituted or claimed as scratch-Cargo behavior. Identities
+and the immutable Rust vocabulary allocation remain deterministic process-local
+fixtures; the emitted-name algorithm is the production `rust-logos` boundary.
