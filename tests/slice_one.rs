@@ -531,11 +531,11 @@ fn incomplete_projection_refuses_without_returning_partial_rust() {
 fn vertical_slice_pins_the_published_producers() {
     for revision in [
         "7290f65bbb5e7825ab2ca58340631d154d69d110",
-        "fc1b23b4a66a7d3ca7c3c367830ee6ca31193f48",
-        "ba35c41c8a41cb3dacd24d87882e995ca4eb76ea",
-        "de13f3e5d674468b87c46c97dc06c385a861ec88",
-        "ddbd7c5a9c33932ebb9c4c20b3ed7ed80a893822",
-        "b008a195feaba2dfa003ce9de22a921169e886e2",
+        "6769015f5a040dd158f0a76b3962f31ee8e4f16e",
+        "700310a0778d164b151a8301cccb4f53bc6fbde1",
+        "13e600ec74532f3037850f5d9985c05905456a20",
+        "2006c982be265bf7dd385345eb79862b866f6f10",
+        "b96a474ee0ec6e7782c18f247d17f112b25ffbaa",
     ] {
         assert!(
             MANIFEST.contains(revision),
