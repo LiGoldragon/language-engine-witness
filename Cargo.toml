@@ -1,6 +1,6 @@
 [package]
 name="language-engine-witness"
-version="0.6.0"
+version="0.7.0"
 edition="2024"
 rust-version="1.89"
 license="MIT OR Apache-2.0"
@@ -23,7 +23,7 @@ tokio={version="1",features=["macros","rt-multi-thread","net","io-util","time"]}
 tempfile="3"
 slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="0840dbd96d250b15b750b5b17a3a7c86bacfb7ee"}
 slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="e4cefc413cfafbe589e64d961fba34457d214316"}
-slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="f7071fb9f8879d17cd2436ed14894799958e9b08"}
+slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="55e72e3bd6de11325d6e4e7ea6dc29566bccc68d"}
 slice-name-table={package="name-table",git="https://github.com/LiGoldragon/name-table.git",rev="50cb4bb53ae2dc4f2516f6912be328ef98ae49f8"}
 slice-raw-discovery={package="raw-discovery",git="https://github.com/LiGoldragon/raw-discovery.git",rev="7290f65bbb5e7825ab2ca58340631d154d69d110"}
 slice-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="c8e4ebc16dbea75880b3034a7c46cb6812ab4ef7"}
