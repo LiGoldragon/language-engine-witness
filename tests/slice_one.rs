@@ -295,11 +295,11 @@ fn six_slot_ethos_lowers_and_emits_a_working_integer_newtype() {
 fn vertical_slice_pins_the_published_producers() {
     for revision in [
         "d979778aa9d79199785f7b683f1029534aea3604",
-        "e47bec61c81fba80deb44c5920f6a15420bbf962",
-        "5bace8ae21468401a07af262b6b9c15dd8543cb6",
-        "a7dd1e2b8d0c55d26e96c5b1b7154a534cf03e55",
-        "cc10e53f49f272ddbd061bf6dea35be072508df9",
-        "3f1fa92ec268210777f27878a1a02287a7e2a2a8",
+        "3cecb832e4209698038e64c537b66af8afcb66b2",
+        "b51805acf48d691514c159b364aaf9d854ee9ddd",
+        "28260415849a250e5e310c3563eda99ad1ff4232",
+        "a30c0c5b74125218795806d37395eea5b8b1338c",
+        "53f407e794e78866d6af3ef155b13d46d6973ffc",
     ] {
         assert!(
             MANIFEST.contains(revision),
