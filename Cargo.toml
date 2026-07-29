@@ -21,6 +21,14 @@ rkyv={version="0.8",features=["bytecheck"]}
 tokio={version="1",features=["macros","rt-multi-thread","net","io-util","time"]}
 [dev-dependencies]
 tempfile="3"
+slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="5bace8ae21468401a07af262b6b9c15dd8543cb6"}
+slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="a7dd1e2b8d0c55d26e96c5b1b7154a534cf03e55"}
+slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="cc10e53f49f272ddbd061bf6dea35be072508df9"}
+slice-name-table={package="name-table",git="https://github.com/LiGoldragon/name-table.git",rev="1f558eac44bd03034e51ad98e3a65ec16d8b8411"}
+slice-raw-discovery={package="raw-discovery",git="https://github.com/LiGoldragon/raw-discovery.git",rev="d979778aa9d79199785f7b683f1029534aea3604"}
+slice-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="3f1fa92ec268210777f27878a1a02287a7e2a2a8"}
+slice-signal-sema-translator={package="signal-sema-translator",git="https://github.com/LiGoldragon/signal-sema-translator.git",rev="8ff7d0db033c756a0cd7999e72e564ca1c32b4aa"}
+slice-structural-codec={package="structural-codec",git="https://github.com/LiGoldragon/structural-codec.git",rev="e47bec61c81fba80deb44c5920f6a15420bbf962"}
 [patch."https://github.com/LiGoldragon/kameo.git?branch=main"]
 kameo={git="https://github.com/LiGoldragon/kameo.git",rev="f491b45d7dcb55e5837eddde3d5d7ca8ceaa9f01"}
 [patch."https://github.com/LiGoldragon/signal-frame.git?branch=main"]
