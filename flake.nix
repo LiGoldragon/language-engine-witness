@@ -13,7 +13,7 @@
     nomos-engine.url = "github:LiGoldragon/nomos-engine/c679660b50e5ef1be4871e586feb6ebc075f81f6";
     logos-engine.url = "github:LiGoldragon/logos-engine/7f75d37513b967b9b8581aa707f513379bb74bac";
     sema-translator = {
-      url = "github:LiGoldragon/sema-translator/7e9e85bb9d199f24b968bcd49a351e910469f5b5";
+      url = "github:LiGoldragon/sema-translator/6df830ab1ec9f315a5b50e40ffc393b48ea3d412";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.rust-build.follows = "rust-build";
     };

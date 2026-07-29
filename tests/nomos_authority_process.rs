@@ -8,8 +8,8 @@ use std::time::{Duration, Instant};
 
 use slice_core_logos::{LogosLanguage, LogosLanguageTypeIds, LogosLanguageWords};
 use slice_core_nomos::{
-    MetaType, NomosModulePath, TemplateFutureOutput, TemplateLandingShape, TemplateLanguage,
-    TextualNomos, TextualNomosMetaType, TextualNomosTypeIds, TextualNomosWords,
+    MetaType, NomosLoadError, NomosModulePath, TemplateFutureOutput, TemplateLandingShape,
+    TemplateLanguage, TextualNomos, TextualNomosMetaType, TextualNomosTypeIds, TextualNomosWords,
 };
 use slice_name_table::{LocalEncodedId, Name, OperationKey};
 use slice_sema_translator::{AUTHORITY_ROUTE, principal_for_unix_uid};
@@ -371,9 +371,9 @@ fn resolved_id(
 
 #[test]
 fn authored_nomos_process_dependencies_pin_the_approved_producers() {
-    assert!(MANIFEST.contains("de2518cdff686b463ecaf88cc1241fbf28a27dfe"));
-    assert!(MANIFEST.contains("7e9e85bb9d199f24b968bcd49a351e910469f5b5"));
-    assert!(MANIFEST.contains("dd8e7b5656833f640e49c099ab3be6f09881f9c5"));
+    assert!(MANIFEST.contains("4e8d71103612ecff683bb7db5407a24f97dbc095"));
+    assert!(MANIFEST.contains("6df830ab1ec9f315a5b50e40ffc393b48ea3d412"));
+    assert!(MANIFEST.contains("51c02c4a7b6f67d9dad095f11986085d7d65785b"));
     assert!(MANIFEST.contains("0786fbe8caf27552afcdd5deb85bc82ec6088337"));
 }
 
@@ -401,17 +401,34 @@ fn authored_nomos_seals_recovers_and_renames_through_the_authority_process() {
         authority_request(AuthorityOperation::SealUniversal(planned.request().clone())),
         true,
     );
-    let receipt = match sealed {
-        AuthorityReply::Committed(CommittedReceipt::SealUniversal(receipt)) => receipt,
+    assert!(matches!(
+        textual.complete_load(&planned, &sealed, &fixed),
+        Err(NomosLoadError::ReceiptNotDurableSeal)
+    ));
+    let receipt = match &sealed {
+        AuthorityReply::Committed(CommittedReceipt::SealUniversal(receipt)) => receipt.clone(),
         other => panic!("expected committed authored Nomos seal, got {other:?}"),
     };
     assert!(matches!(
         event,
         Some(PostCommitEvent::UniversalSealed(ref committed)) if committed == &receipt
     ));
+    let durable = exchange(
+        &socket,
+        authority_request(AuthorityOperation::Read(ReadOperation::CommittedReceipt {
+            operation_key: OperationKey::new([41; 32]),
+        })),
+        false,
+    )
+    .0;
+    let durable_receipt = match &durable {
+        AuthorityReply::Receipt(CommittedReceipt::SealUniversal(receipt)) => receipt,
+        other => panic!("expected durable authored Nomos receipt, got {other:?}"),
+    };
+    assert_eq!(durable_receipt, &receipt);
     let mut loaded = textual
-        .complete_load(&planned, &receipt, &fixed)
-        .expect("materialize only from committed receipt");
+        .complete_load(&planned, &durable, &fixed)
+        .expect("materialize only from the durable authority receipt");
     let transformer = resolved_id(&receipt, &["fixture"], "WireNewtype");
     let wrapped = resolved_id(&receipt, &["fixture", "WireNewtype"], "wrapped");
     assert_eq!(transformer.chain().len(), 2);
@@ -430,13 +447,13 @@ fn authored_nomos_seals_recovers_and_renames_through_the_authority_process() {
         false,
     )
     .0;
-    let recovered_receipt = match recovered {
+    let recovered_receipt = match &recovered {
         AuthorityReply::Receipt(CommittedReceipt::SealUniversal(receipt)) => receipt,
         other => panic!("expected recovered Nomos receipt, got {other:?}"),
     };
-    assert_eq!(recovered_receipt, receipt);
+    assert_eq!(recovered_receipt, &receipt);
     let recovered_load = textual
-        .complete_load(&planned, &recovered_receipt, &fixed)
+        .complete_load(&planned, &recovered, &fixed)
         .expect("recovered receipt rematerializes the same encoded document");
     assert_eq!(recovered_load.transformers(), loaded.transformers());
 

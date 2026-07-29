@@ -779,17 +779,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1785344235,
-        "narHash": "sha256-isaDRIPfe6VZJQiIMTT0u3d0DmvEUHX/eBA0CK5UQ7c=",
+        "lastModified": 1785365944,
+        "narHash": "sha256-A9q6CI3jJk9QBAT70+yPJEd5jR/T5f+2fopZY24IS2w=",
         "owner": "LiGoldragon",
         "repo": "sema-translator",
-        "rev": "7e9e85bb9d199f24b968bcd49a351e910469f5b5",
+        "rev": "6df830ab1ec9f315a5b50e40ffc393b48ea3d412",
         "type": "github"
       },
       "original": {
         "owner": "LiGoldragon",
         "repo": "sema-translator",
-        "rev": "7e9e85bb9d199f24b968bcd49a351e910469f5b5",
+        "rev": "6df830ab1ec9f315a5b50e40ffc393b48ea3d412",
         "type": "github"
       }
     },
