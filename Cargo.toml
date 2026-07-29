@@ -1,6 +1,6 @@
 [package]
 name="language-engine-witness"
-version="0.9.0"
+version="0.10.0"
 edition="2024"
 rust-version="1.89"
 license="MIT OR Apache-2.0"
@@ -23,10 +23,12 @@ tokio={version="1",features=["macros","rt-multi-thread","net","io-util","time"]}
 tempfile="3"
 slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="700310a0778d164b151a8301cccb4f53bc6fbde1"}
 slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="13e600ec74532f3037850f5d9985c05905456a20"}
-slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="2006c982be265bf7dd385345eb79862b866f6f10"}
+slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="de2518cdff686b463ecaf88cc1241fbf28a27dfe"}
 slice-name-table={package="name-table",git="https://github.com/LiGoldragon/name-table.git",rev="50cb4bb53ae2dc4f2516f6912be328ef98ae49f8"}
 slice-raw-discovery={package="raw-discovery",git="https://github.com/LiGoldragon/raw-discovery.git",rev="7290f65bbb5e7825ab2ca58340631d154d69d110"}
 slice-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="b96a474ee0ec6e7782c18f247d17f112b25ffbaa"}
+slice-sema-translator={package="sema-translator",git="https://github.com/LiGoldragon/sema-translator.git",rev="7e9e85bb9d199f24b968bcd49a351e910469f5b5"}
+slice-signal-frame={package="signal-frame",git="https://github.com/LiGoldragon/signal-frame.git",rev="0786fbe8caf27552afcdd5deb85bc82ec6088337",default-features=false}
 slice-signal-sema-translator={package="signal-sema-translator",git="https://github.com/LiGoldragon/signal-sema-translator.git",rev="dd8e7b5656833f640e49c099ab3be6f09881f9c5"}
 slice-structural-codec={package="structural-codec",git="https://github.com/LiGoldragon/structural-codec.git",rev="6769015f5a040dd158f0a76b3962f31ee8e4f16e"}
 [patch."https://github.com/LiGoldragon/kameo.git?branch=main"]

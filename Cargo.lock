@@ -203,14 +203,15 @@ dependencies = [
 
 [[package]]
 name = "core-nomos"
-version = "0.18.0"
-source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=2006c982be265bf7dd385345eb79862b866f6f10#2006c982be265bf7dd385345eb79862b866f6f10"
+version = "0.19.0"
+source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=de2518cdff686b463ecaf88cc1241fbf28a27dfe#de2518cdff686b463ecaf88cc1241fbf28a27dfe"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.4.0",
  "core-ethos 0.18.0",
  "core-logos 0.16.0",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
+ "name-table 0.3.0",
  "protos",
  "raw-discovery 0.4.0",
  "rkyv",
@@ -508,11 +509,11 @@ dependencies = [
 
 [[package]]
 name = "language-engine-witness"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "core-ethos 0.18.0",
  "core-logos 0.16.0",
- "core-nomos 0.18.0",
+ "core-nomos 0.19.0",
  "ethos-engine",
  "logos-engine",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=c3237f77c087e6feab49d6cf34971cebc14a11e6)",
@@ -522,8 +523,10 @@ dependencies = [
  "rkyv",
  "rust-logos",
  "sema-storage",
+ "sema-translator",
  "signal-ethos",
  "signal-frame 0.3.0",
+ "signal-frame 0.4.0",
  "signal-logos",
  "signal-nomos",
  "signal-sema-storage",
@@ -951,6 +954,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "sema-engine"
+version = "0.11.2"
+source = "git+https://github.com/LiGoldragon/sema-engine.git?rev=94d2f7ee7b81d0bf3b6f1a111f6bbbc398c0e7a3#94d2f7ee7b81d0bf3b6f1a111f6bbbc398c0e7a3"
+dependencies = [
+ "blake3",
+ "rkyv",
+ "sema",
+ "signal-frame 0.3.0",
+ "signal-sema",
+ "thiserror",
+]
+
+[[package]]
 name = "sema-storage"
 version = "0.1.0"
 source = "git+https://github.com/LiGoldragon/sema-storage.git?rev=269953164460cd842c1f3f8c9c93e4afe1e3628e#269953164460cd842c1f3f8c9c93e4afe1e3628e"
@@ -958,9 +974,24 @@ dependencies = [
  "kameo",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=c3237f77c087e6feab49d6cf34971cebc14a11e6)",
  "rkyv",
- "sema-engine",
+ "sema-engine 0.10.1",
  "signal-frame 0.3.0",
  "signal-sema-storage",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "sema-translator"
+version = "0.2.0"
+source = "git+https://github.com/LiGoldragon/sema-translator.git?rev=7e9e85bb9d199f24b968bcd49a351e910469f5b5#7e9e85bb9d199f24b968bcd49a351e910469f5b5"
+dependencies = [
+ "blake3",
+ "name-table 0.3.0",
+ "rkyv",
+ "sema-engine 0.11.2",
+ "signal-frame 0.4.0",
+ "signal-sema-translator",
  "thiserror",
  "tokio",
 ]

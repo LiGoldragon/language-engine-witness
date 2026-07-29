@@ -12,13 +12,18 @@
     ethos-engine.url = "github:LiGoldragon/ethos-engine/ed12804a35377a8c6dcdd7325c126b394e7dff02";
     nomos-engine.url = "github:LiGoldragon/nomos-engine/c679660b50e5ef1be4871e586feb6ebc075f81f6";
     logos-engine.url = "github:LiGoldragon/logos-engine/7f75d37513b967b9b8581aa707f513379bb74bac";
+    sema-translator = {
+      url = "github:LiGoldragon/sema-translator/7e9e85bb9d199f24b968bcd49a351e910469f5b5";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-build.follows = "rust-build";
+    };
     signal-domain-source = {
       url = "github:LiGoldragon/signal-domain/c24059de43614e6fb2128e47f959dc11748bd7e7";
       flake = false;
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-build, sema-storage, ethos-engine, nomos-engine, logos-engine, signal-domain-source }:
+  outputs = { self, nixpkgs, flake-utils, rust-build, sema-storage, ethos-engine, nomos-engine, logos-engine, sema-translator, signal-domain-source }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -34,11 +39,13 @@
             ethos-engine.packages.${system}.default
             nomos-engine.packages.${system}.default
             logos-engine.packages.${system}.default
+            sema-translator.packages.${system}.default
           ];
           SEMA_STORAGE_BIN = "${sema-storage.packages.${system}.default}/bin/sema-storage";
           ETHOS_ENGINE_BIN = "${ethos-engine.packages.${system}.default}/bin/ethos-engine";
           NOMOS_ENGINE_BIN = "${nomos-engine.packages.${system}.default}/bin/nomos-engine";
           LOGOS_ENGINE_BIN = "${logos-engine.packages.${system}.default}/bin/logos-engine";
+          SEMA_TRANSLATOR_BIN = "${sema-translator.packages.${system}.default}/bin/sema-translator-daemon";
         };
       in
       {

@@ -534,7 +534,7 @@ fn vertical_slice_pins_the_published_producers() {
         "6769015f5a040dd158f0a76b3962f31ee8e4f16e",
         "700310a0778d164b151a8301cccb4f53bc6fbde1",
         "13e600ec74532f3037850f5d9985c05905456a20",
-        "2006c982be265bf7dd385345eb79862b866f6f10",
+        "de2518cdff686b463ecaf88cc1241fbf28a27dfe",
         "b96a474ee0ec6e7782c18f247d17f112b25ffbaa",
     ] {
         assert!(
