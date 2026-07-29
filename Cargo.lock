@@ -35,6 +35,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bs58"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf88ba1141d185c399bee5288d850d63b8369520c1eafc32a0430b5b6c287bf4"
+dependencies = [
+ "tinyvec",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -920,9 +929,10 @@ dependencies = [
 
 [[package]]
 name = "rust-logos"
-version = "0.4.0"
-source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=c1a62852569457af423acc633c4ab392aca7e498#c1a62852569457af423acc633c4ab392aca7e498"
+version = "0.5.0"
+source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=4d637fc977ba0beeed9bf9d68a838a2a71ca9b57#4d637fc977ba0beeed9bf9d68a838a2a71ca9b57"
 dependencies = [
+ "bs58",
  "core-logos 0.5.1",
  "name-table 0.3.0",
  "raw-discovery 0.4.0",
