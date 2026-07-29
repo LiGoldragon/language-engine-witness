@@ -1,6 +1,6 @@
 [package]
 name="language-engine-witness"
-version="0.4.0"
+version="0.5.0"
 edition="2024"
 rust-version="1.89"
 license="MIT OR Apache-2.0"
@@ -21,13 +21,13 @@ rkyv={version="0.8",features=["bytecheck"]}
 tokio={version="1",features=["macros","rt-multi-thread","net","io-util","time"]}
 [dev-dependencies]
 tempfile="3"
-slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="bbeca83c6980cc8a415f46fffc6e403fedf10b6b"}
-slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="997e1595601be851ad14617384302e3ee61a658f"}
-slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="98aa5f69eae269a4a7503388858d18108c99ac83"}
+slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="f7e4d127a8393e9ad4754e3cce79d1fca1a9e8c9"}
+slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="749408b13f5af64284dd9c596271232a89cc758b"}
+slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="c8ae55678572b98cff88c08ab3a86b9b8cdcb0ee"}
 slice-name-table={package="name-table",git="https://github.com/LiGoldragon/name-table.git",rev="50cb4bb53ae2dc4f2516f6912be328ef98ae49f8"}
 slice-raw-discovery={package="raw-discovery",git="https://github.com/LiGoldragon/raw-discovery.git",rev="7290f65bbb5e7825ab2ca58340631d154d69d110"}
-slice-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="cdd9c23b793a8687a9ce2f9a7431879a1d3830a2"}
-slice-signal-sema-translator={package="signal-sema-translator",git="https://github.com/LiGoldragon/signal-sema-translator.git",rev="8c504ba7aa8dbdc5edf7daadbb862bbdaa5613be"}
+slice-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="9fc8427f11c624dd08ce684a224df1575bb540de"}
+slice-signal-sema-translator={package="signal-sema-translator",git="https://github.com/LiGoldragon/signal-sema-translator.git",rev="dd8e7b5656833f640e49c099ab3be6f09881f9c5"}
 slice-structural-codec={package="structural-codec",git="https://github.com/LiGoldragon/structural-codec.git",rev="5c11e1fb7f58444cd860207803d8f705e7415d71"}
 [patch."https://github.com/LiGoldragon/kameo.git?branch=main"]
 kameo={git="https://github.com/LiGoldragon/kameo.git",rev="f491b45d7dcb55e5837eddde3d5d7ca8ceaa9f01"}

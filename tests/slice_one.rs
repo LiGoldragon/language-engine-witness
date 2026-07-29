@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::BTreeMap, fs, process::Command};
 
 use slice_core_ethos::{
-    SixSlotEthosCodec, SixSlotGrammarIds, SliceOneBuiltinPriors, WholeEthos, WholeEthosItem,
+    SixSlotEthosCodec, SixSlotGrammarIds, WholeEthos, WholeEthosBuiltinPriors, WholeEthosItem,
     WholeEthosTypeApplication, WholeEthosTypeReference, WholeEthosVariantPayload,
     WholeEthosVisibility,
 };
@@ -355,7 +355,7 @@ fn six_slot_ethos_lowers_and_emits_working_enum_and_application_shapes() {
     let bindings = ethos_bindings(&ids);
     let codec = SixSlotEthosCodec::build(
         grammar_ids(),
-        SliceOneBuiltinPriors::new(ids.integer.clone(), ids.vector.clone())
+        WholeEthosBuiltinPriors::new(ids.integer.clone(), ids.vector.clone())
             .expect("fixture builtin priors are Universal"),
     )
     .expect("six-slot structuretree seals");
@@ -532,10 +532,10 @@ fn vertical_slice_pins_the_published_producers() {
     for revision in [
         "7290f65bbb5e7825ab2ca58340631d154d69d110",
         "5c11e1fb7f58444cd860207803d8f705e7415d71",
-        "bbeca83c6980cc8a415f46fffc6e403fedf10b6b",
-        "997e1595601be851ad14617384302e3ee61a658f",
-        "98aa5f69eae269a4a7503388858d18108c99ac83",
-        "cdd9c23b793a8687a9ce2f9a7431879a1d3830a2",
+        "f7e4d127a8393e9ad4754e3cce79d1fca1a9e8c9",
+        "749408b13f5af64284dd9c596271232a89cc758b",
+        "c8ae55678572b98cff88c08ab3a86b9b8cdcb0ee",
+        "9fc8427f11c624dd08ce684a224df1575bb540de",
     ] {
         assert!(
             MANIFEST.contains(revision),

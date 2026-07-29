@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::BTreeMap, fs, process::Command};
 
 use slice_core_ethos::{
-    SixSlotEthosCodec, SixSlotGrammarIds, SliceOneBuiltinPriors, WholeEthos, WholeEthosItem,
+    SixSlotEthosCodec, SixSlotGrammarIds, WholeEthos, WholeEthosBuiltinPriors, WholeEthosItem,
     WholeEthosTypeReference, WholeEthosVariantPayload,
 };
 use slice_core_logos::{
@@ -297,8 +297,8 @@ impl FixtureIdentities {
         self.items_by_spelling[spelling].clone()
     }
 
-    fn priors(&self) -> SliceOneBuiltinPriors {
-        let mut priors = SliceOneBuiltinPriors::new(self.integer.clone(), self.vector.clone())
+    fn priors(&self) -> WholeEthosBuiltinPriors {
+        let mut priors = WholeEthosBuiltinPriors::new(self.integer.clone(), self.vector.clone())
             .expect("fixture builtin chains are Universal")
             .with_application_head(self.scope_of.clone())
             .expect("fixture ScopeOf chain is Universal");
