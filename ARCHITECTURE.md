@@ -5,3 +5,18 @@ This repository owns one capability: launch the four delivered runtime libraries
 The witness then kills all four processes and restarts every one of them against the same isolated database and Unix sockets. It proves the first document and every stored root recover durably, re-establishes the downstream subscription on the rebound Logos socket, and drives a genuinely second fixture (`second-min.ethos`) end to end through the restarted pipeline — asserting its projection arrives through a push (timeout-guarded, never polled), differs from the first document's Rust, and stores durably in Sema. It never touches production Spirit state.
 
 The first vertical engine slice is a separate component-side witness. It decodes a complete six-slot Ethos document with caller-supplied translator identities into one application-backed newtype and one enumeration containing unit and positional tuple variants. The direct typed Nomos transformation lowers that positional Whole Ethos value into Whole Logos without entering the legacy string-bearing generation path. Rust Logos then structurally emits the newtype, enumeration, recursive `Vector.Integer` applications, and every tuple field from caller-supplied opaque projections. The test archives and restores both whole carriers, checks every declaration, variant, application-head, and reference chain, decodes the emitted Rust back to the same Whole Logos value, proves incomplete projection data returns no partial source, then uses a process-local scratch Cargo crate to compile and exhaustively run all emitted forms. Its identities, immutable Rust vocabulary, and projections are deterministic process-local fixtures: it exercises no allocator, translator daemon, Capsule, NameTree pin, production state, or encodedID-to-Rust encoding scheme.
+
+The checked-in `spirit-domain.ethos` fixture is an exact read-only inventory
+witness for the separately pinned current `signal-domain` source. A Nix check
+compares the two sources without evaluating or linking the legacy
+`signal-domain` crate. Its component-side witness assigns opaque process-local
+Universal chains before decode, then carries all 41 items and 369 variants
+through typed Ethos, archive/restart, direct Nomos, Whole Logos identity and
+archive/restart, and structural Rust emit/decode. The 38 authored enumerations
+compile and all 369 emitted variants are constructed in a scratch Cargo
+program. The three application newtypes remain present in the full structural
+carrier and Rust round trip. `DomainScope.ScopeOf.Domain` has no approved
+runtime transformation on this path, and both `Vector.DomainScope` declarations
+depend on that missing output, so none of the three is substituted or claimed
+as scratch-Cargo behavior. The fixture chains and Rust names are test
+projections only; they are not the open production encoded-chain spelling.

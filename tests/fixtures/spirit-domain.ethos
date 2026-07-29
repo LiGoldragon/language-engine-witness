@@ -1,0 +1,87 @@
+{}
+[]
+[]
+{
+  Domain.[
+    All
+    Health.HealthDomain
+    Food.FoodDomain
+    Home.HomeDomain
+    Finance.FinanceDomain
+    Work.WorkDomain
+    Craft.CraftDomain
+    Knowledge.KnowledgeDomain
+    Education.EducationDomain
+    Language.LanguageDomain
+    Art.ArtDomain
+    Kinship.KinshipDomain
+    Selfhood.SelfhoodDomain
+    Spirituality.SpiritualityDomain
+    Governance.GovernanceDomain
+    Law.LawDomain
+    Community.CommunityDomain
+    Nature.NatureDomain
+    Travel.TravelDomain
+    Commerce.CommerceDomain
+    Leisure.LeisureDomain
+    Appearance.AppearanceDomain
+    Safety.SafetyDomain
+    Information.InformationDomain
+    Technology.TechnologyDomain
+  ]
+  HealthDomain.[Body Mind Nutrition Exercise Sleep Medicine Disease Medication Therapy Reproduction Sexuality Aging Disability Addiction Dentistry Senses Pain Prevention FirstAid Rehabilitation]
+  FoodDomain.[Cooking Diet Recipe Baking Preservation Fermentation Beverage Entertaining Foraging Fasting Dining]
+  HomeDomain.[Housing Maintenance Renovation Furnishing Cleaning Tidying Relocation Realty Property Utilities Locksmithing Appliances]
+  FinanceDomain.[Budgeting Saving Spending Debt Credit Investing Retirement Tax Insurance Income Banking Charity Planning Accounting]
+  WorkDomain.[Career JobSearch Workplace Vocation Leadership Entrepreneurship Employment Compensation Scheduling Unemployment Freelancing Teamwork Productivity Project]
+  CraftDomain.[Electronics Construction Carpentry Metalworking Sewing Manufacturing Repair Engineering Handicraft Invention]
+  KnowledgeDomain.[Mathematics Logic Physics Chemistry Biology Astronomy Geology Computing Physiology Statistics Research History Linguistics Philosophy Economics Cognition Taxonomy]
+  EducationDomain.[Studying Teaching Schooling Skill Reading Memorization Pedagogy Mentoring Autodidacticism Credential]
+  LanguageDomain.[Writing Rhetoric Translation Grammar Conversation Correspondence Listening Oratory Editing Terminology Notation]
+  ArtDomain.[Fiction Poetry Music Painting Photography Film Theater Dance Design Sculpture Creativity Storytelling Publishing]
+  KinshipDomain.[Friendship Romance Marriage Family Parenting Relatives Reconciliation Boundaries Intimacy Rapport Caregiving Grief Belonging]
+  SelfhoodDomain.[Growth Introspection Discipline Emotion Virtue Motivation Confidence Identity Purpose Decision Temperament Wellbeing Composure]
+  SpiritualityDomain.[Worship Prayer Meditation Ritual Faith Theology Contemplation Pilgrimage Scripture Ethics Mortality Transcendence Asceticism Wisdom]
+  GovernanceDomain.[Politics Government Administration Citizenship Elections Activism Policy Diplomacy Movements Organizing Services Naturalization War]
+  LawDomain.[Rights Contract Title Crime Litigation Compliance Custody Liability Procedure Justice Policing Arbitration]
+  CommunityDomain.[Neighborliness Volunteering Solidarity Membership Gatherings Reputation Service Hospitality Institutions]
+  NatureDomain.[Agriculture Gardening Horticulture Husbandry Pets Forestry Fishing Hunting Conservation Weather Wilderness Sustainability Resources Stewardship]
+  TravelDomain.[Itinerary Destination Transportation Driving Navigation Commuting Logistics Migration Tourism Transit Cycling]
+  CommerceDomain.[Selling Buying Marketing Retail Sourcing Trade Support Pricing Negotiation Assets Market]
+  LeisureDomain.[Recreation Sport Games Hobby Entertainment Collecting Outdoors Play Relaxation Celebration Fandom]
+  AppearanceDomain.[Clothing Grooming Style Cosmetics Etiquette Comportment]
+  SafetyDomain.[Protection Preparedness Risk Cybersecurity Privacy Disaster Military Deterrence]
+  InformationDomain.[Curation RecordKeeping Documentation News Broadcasting Archives Database Retrieval Classification]
+  TechnologyDomain.[Hardware.HardwareLeaf Software.SoftwareDomain]
+  HardwareLeaf.[All Networking]
+  SoftwareDomain.[
+    Programming.ProgrammingLeaf
+    Theory
+    Systems.SystemsLeaf
+    Distributed.DistributedLeaf
+    Data.DataLeaf
+    Intelligence.IntelligenceLeaf
+    Security.SecurityLeaf
+    Quality.QualityLeaf
+    Operations.OperationsLeaf
+    Observability.ObservabilityLeaf
+    Surfaces.SurfacesLeaf
+    Engineering.EngineeringLeaf
+  ]
+  ProgrammingLeaf.[All TypeSystems Compilation Parsing Grammars CodeGeneration Metaprogramming Macros DomainSpecificLanguages]
+  SystemsLeaf.[All SystemsProgramming Concurrency]
+  DistributedLeaf.[All ProtocolDesign EventDrivenArchitecture]
+  DataLeaf.[All Persistence Serialization Formats Modeling SchemaEvolution Migration]
+  IntelligenceLeaf.[All AgentSystems]
+  SecurityLeaf.[All Cryptography Authentication Authorization SecretsManagement Privacy]
+  QualityLeaf.[All Testing]
+  OperationsLeaf.[All BuildSystem ReleaseEngineering DependencyManagement Deployment ConfigurationManagement]
+  ObservabilityLeaf.[All Tracing]
+  SurfacesLeaf.[All Visualization CommandLineInterfaces]
+  EngineeringLeaf.[All Architecture Design ApplicationProgrammingInterfaces Documentation VersionControl DevelopmentProcess Management Modularity]
+  DomainScope.ScopeOf.Domain
+  DomainScopes.Vector.DomainScope
+  ScopeSet.Vector.DomainScope
+}
+{}
+{}

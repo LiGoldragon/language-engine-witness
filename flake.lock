@@ -520,7 +520,8 @@
         "nixpkgs": "nixpkgs_3",
         "nomos-engine": "nomos-engine",
         "rust-build": "rust-build_4",
-        "sema-storage": "sema-storage"
+        "sema-storage": "sema-storage",
+        "signal-domain-source": "signal-domain-source"
       }
     },
     "rust-analyzer-src": {
@@ -745,6 +746,23 @@
         "owner": "LiGoldragon",
         "repo": "sema-storage",
         "rev": "269953164460cd842c1f3f8c9c93e4afe1e3628e",
+        "type": "github"
+      }
+    },
+    "signal-domain-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785051155,
+        "narHash": "sha256-kKt9HEI7WtZjm2KRcY1Hsmvhz1ubLOFAxdWeipfJ+mw=",
+        "owner": "LiGoldragon",
+        "repo": "signal-domain",
+        "rev": "c24059de43614e6fb2128e47f959dc11748bd7e7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "LiGoldragon",
+        "repo": "signal-domain",
+        "rev": "c24059de43614e6fb2128e47f959dc11748bd7e7",
         "type": "github"
       }
     },

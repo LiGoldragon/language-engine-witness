@@ -12,9 +12,13 @@
     ethos-engine.url = "github:LiGoldragon/ethos-engine/ed12804a35377a8c6dcdd7325c126b394e7dff02";
     nomos-engine.url = "github:LiGoldragon/nomos-engine/c679660b50e5ef1be4871e586feb6ebc075f81f6";
     logos-engine.url = "github:LiGoldragon/logos-engine/7f75d37513b967b9b8581aa707f513379bb74bac";
+    signal-domain-source = {
+      url = "github:LiGoldragon/signal-domain/c24059de43614e6fb2128e47f959dc11748bd7e7";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-build, sema-storage, ethos-engine, nomos-engine, logos-engine }:
+  outputs = { self, nixpkgs, flake-utils, rust-build, sema-storage, ethos-engine, nomos-engine, logos-engine, signal-domain-source }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -51,6 +55,10 @@
             inherit cargoArtifacts;
             cargoClippyExtraArgs = "--all-targets -- -D warnings";
           });
+          spirit-domain-inventory = pkgs.runCommand "spirit-domain-inventory" {} ''
+            cmp ${signal-domain-source}/schema/domain.schema ${./tests/fixtures/spirit-domain.ethos}
+            touch $out
+          '';
         };
         devShells.default = pkgs.mkShell {
           name = "language-engine-witness";
