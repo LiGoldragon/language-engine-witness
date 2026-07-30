@@ -64,6 +64,17 @@ Public Invoke.WireAttributes Realize.name Private Realize.wrapped
 }
 {}
 {}"#;
+const EXTERNAL_INVOKE_SOURCE: &str = r#"{1}
+[]
+[]
+{
+WireExternal.Structural.Newtype {
+(name.Name wrapped.Type)
+Public Invoke.WireAttributes Realize.name Private Realize.wrapped
+}
+}
+{}
+{}"#;
 const MANIFEST: &str = include_str!("../Cargo.toml");
 
 struct Daemon {
@@ -435,7 +446,7 @@ fn assert_no_committed_receipt(socket: &Path, operation_key: [u8; 32]) {
 
 #[test]
 fn authored_nomos_process_dependencies_pin_the_approved_producers() {
-    assert!(MANIFEST.contains("94cec6ed90cda69dd0f3b94bae074deaf459c8e4"));
+    assert!(MANIFEST.contains("7cd62205a19938cb3921a4cad56d79a596c662f0"));
     assert!(MANIFEST.contains("6df830ab1ec9f315a5b50e40ffc393b48ea3d412"));
     assert!(MANIFEST.contains("51c02c4a7b6f67d9dad095f11986085d7d65785b"));
     assert!(MANIFEST.contains("0786fbe8caf27552afcdd5deb85bc82ec6088337"));
@@ -635,6 +646,37 @@ fn authored_nomos_manifest_is_one_process_request_and_graph_failures_leave_no_re
     assert_eq!(population.transformers().declarations().len(), 2);
 
     let before_refusals = current(&socket);
+    std::fs::write(
+        source_root.join("external-invoke.nomos"),
+        EXTERNAL_INVOKE_SOURCE,
+    )
+    .expect("write external Invoke source");
+    let external_invoke = NomosFileManifest(
+        source_path("external-invoke.nomos"),
+        vec![NomosManifestFile(
+            source_path("external-invoke.nomos"),
+            fixture_module(),
+            vec![],
+        )],
+    );
+    // [not-understood-by-psyche, Entry 7, NomosTrainAddendum-2026-07-30]
+    // Authority already contains fixture/WireAttributes, but the later manifest
+    // does not select that declaration into its self-contained v1 package.
+    assert!(matches!(
+        textual.plan_file_population(
+            &source_root,
+            &external_invoke,
+            &fixed,
+            [55; 32],
+            expected(before_refusals)
+        ),
+        Err(NomosManifestLoadError::ExternalInvoke(modules, spelling))
+            if modules == vec![Name::new("fixture")]
+                && spelling == Name::new("WireAttributes")
+    ));
+    assert_eq!(current(&socket), before_refusals);
+    assert_no_committed_receipt(&socket, [55; 32]);
+
     let missing = NomosFileManifest(
         source_path("entry.nomos"),
         vec![NomosManifestFile(
