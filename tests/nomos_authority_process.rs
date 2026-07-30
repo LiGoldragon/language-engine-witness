@@ -8,24 +8,27 @@ use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
-use nomos_engine::{EngineEthosNameTree, encode_ethos_population};
+use nomos_engine::{EngineEthosNameTree, EngineLogosNameTree, encode_ethos_population};
 use signal_nomos::{
-    DeployOutcome, GenerationSelection, NomosDeploymentArtifacts, NomosProjectionArchive,
-    NomosSlotId, ProjectionOutcome, Rejection as NomosRejection, Reply as NomosReply,
-    Request as NomosRequest, SlotExpectation, SlotGeneration, TransformSelector, encode_request,
+    DeployOutcome, EthosPopulationArchive, GenerationSelection, NomosDeploymentArtifacts,
+    NomosProjectionArchive, NomosSlotId, ProjectionOutcome, Rejection as NomosRejection,
+    Reply as NomosReply, Request as NomosRequest, SlotExpectation, SlotGeneration,
+    TransformSelector, encode_request,
 };
 use slice_core_ethos::{
-    WholeEthos, WholeEthosAttributes, WholeEthosItem, WholeEthosNewtype, WholeEthosTypeReference,
+    WholeEthos, WholeEthosAttributes, WholeEthosEnumeration, WholeEthosItem, WholeEthosNewtype,
+    WholeEthosTupleFields, WholeEthosTypeReference, WholeEthosVariant, WholeEthosVariantPayload,
     WholeEthosVisibility, WholeEthosWrappedField,
 };
 use slice_core_logos::{LogosLanguage, LogosLanguageTypeIds, LogosLanguageWords};
 use slice_core_nomos::{
-    MetaType, NameTreeProjectionVersion, NomosFileManifest, NomosLoadError, NomosManifestFile,
-    NomosManifestLoadError, NomosModulePath, NomosSourcePath, TemplateFutureOutput,
-    TemplateLandingShape, TemplateLanguage, TextualNomos, TextualNomosMetaType,
-    TextualNomosTypeIds, TextualNomosWords,
+    MetaType, NameTreeProjectionVersion, NativeEvaluatedLogos, NativeEvaluatedTerm,
+    NomosFileManifest, NomosLoadError, NomosManifestFile, NomosManifestLoadError, NomosModulePath,
+    NomosSourcePath, TemplateFutureOutput, TemplateLandingShape, TemplateLanguage, TextualNomos,
+    TextualNomosMetaType, TextualNomosTypeIds, TextualNomosWords,
 };
 use slice_name_table::{LocalEncodedId, Name, OperationKey};
+use slice_protos::EncodedPopulation;
 use slice_sema_translator::{AUTHORITY_ROUTE, principal_for_unix_uid};
 use slice_signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, Reply, Request, SessionEpoch,
@@ -33,9 +36,9 @@ use slice_signal_frame::{
 };
 use slice_signal_sema_translator::{
     AuthorityCapability, AuthorityOperation, AuthorityReply, AuthorityRequest, AuthorityRole,
-    AuthorizationClaim, CommittedReceipt, DatabaseMarker, NoWriteFailure, PostCommitEvent,
-    PrincipalId, ReadOperation, Rename, RenameCommitReceipt, SealCommitReceipt, TranslatorFrame,
-    VocabularyEncodedId, VocabularyRoot, WritePrecondition,
+    AuthorizationClaim, CommittedReceipt, DatabaseMarker, DeclarationNode, NoWriteFailure,
+    PostCommitEvent, PrincipalId, ReadOperation, Rename, RenameCommitReceipt, SealCommitReceipt,
+    SealUniversal, TranslatorFrame, VocabularyEncodedId, VocabularyRoot, WritePrecondition,
 };
 use slice_structural_codec::{EncodedNameResolver, LandingShape};
 
@@ -50,6 +53,23 @@ WireAttributes.Named {
 WireNewtype.Structural.Newtype {
 (name.Name wrapped.Type)
 Public Invoke.WireAttributes Realize.name Private Realize.wrapped
+}
+ParticularStruct.Structural.Struct {
+(name.Name fields.Fields)
+Public Invoke.WireAttributes Realize.name () [Splice.fields]
+}
+ScopeOfStep.Recursive.Enumeration {
+(variant.Name source.Variants children.Variants)
+[
+Invoke.ScopeOfStep
+Splice.children
+InsertAt.children 0 rustfmt.skip
+[Clone]
+]
+}
+Enumeration.Structural.Enumeration {
+(name.Name variants.Variants)
+Public Invoke.ScopeOfStep Realize.name () [Splice.variants]
 }
 }
 {}
@@ -455,11 +475,16 @@ fn literal_landing(shape: &TemplateLandingShape<VocabularyRoot>) -> LandingShape
 fn textual(logos: &LogosLanguage) -> TextualNomos {
     let newtype = TemplateLanguage::derive(logos.grammar(), logos.landing(), logos.newtype_type())
         .expect("derive Template(Logos)");
-    let constructor = newtype
-        .type_declaration(newtype.root())
-        .and_then(|declaration| declaration.constructors().first())
-        .expect("fixture newtype constructor");
-    let field_output = |index: usize| {
+    let enumeration =
+        TemplateLanguage::derive(logos.grammar(), logos.landing(), logos.enumeration_type())
+            .expect("derive enumeration Template(Logos)");
+    let structure = TemplateLanguage::derive(logos.grammar(), logos.landing(), logos.struct_type())
+        .expect("derive struct Template(Logos)");
+    let field_output = |language: &TemplateLanguage<VocabularyRoot>, index: usize| {
+        let constructor = language
+            .type_declaration(language.root())
+            .and_then(|declaration| declaration.constructors().first())
+            .expect("fixture root constructor");
         TemplateFutureOutput::new(literal_landing(
             constructor
                 .landing_fields()
@@ -500,12 +525,22 @@ fn textual(logos: &LogosLanguage) -> TextualNomos {
             TextualNomosMetaType {
                 word: encoded(&[102, 1]),
                 meta: MetaType::Name,
-                output: field_output(2),
+                output: field_output(&newtype, 2),
             },
             TextualNomosMetaType {
                 word: encoded(&[102, 2]),
                 meta: MetaType::Type,
-                output: field_output(4),
+                output: field_output(&newtype, 4),
+            },
+            TextualNomosMetaType {
+                word: encoded(&[102, 3]),
+                meta: MetaType::Variants,
+                output: field_output(&enumeration, 4),
+            },
+            TextualNomosMetaType {
+                word: encoded(&[102, 4]),
+                meta: MetaType::Fields,
+                output: field_output(&structure, 4),
             },
         ],
     )
@@ -527,15 +562,48 @@ impl FixedNames {
                 (encoded(&[101, 5]), "Realize"),
                 (encoded(&[101, 6]), "Splice"),
                 (encoded(&[101, 7]), "Invoke"),
+                (encoded(&[101, 8]), "Struct"),
                 (encoded(&[101, 9]), "Recursive"),
                 (encoded(&[101, 10]), "InsertAt"),
                 (encoded(&[102, 1]), "Name"),
                 (encoded(&[102, 2]), "Type"),
+                (encoded(&[102, 3]), "Variants"),
+                (encoded(&[102, 4]), "Fields"),
             ]
             .into_iter()
             .map(|(identity, spelling)| (identity, Name::new(spelling)))
             .collect(),
         )
+    }
+
+    fn with_recursive_template_vocabulary(receipt: &SealCommitReceipt) -> Self {
+        let mut names = Self::new();
+        names.0.insert(
+            resolved_id(receipt, &["fixture"], "Clone"),
+            Name::new("Clone"),
+        );
+        names.0.insert(
+            resolved_id(receipt, &["fixture"], "rustfmt"),
+            Name::new("rustfmt"),
+        );
+        names.0.insert(
+            resolved_id(receipt, &["fixture"], "skip"),
+            Name::new("skip"),
+        );
+        names
+    }
+
+    fn recursive_template_references(&self) -> Vec<VocabularyEncodedId> {
+        ["Clone", "rustfmt", "skip"]
+            .into_iter()
+            .map(|spelling| {
+                self.0
+                    .iter()
+                    .find(|(_, name)| name.as_str() == spelling)
+                    .map(|(identity, _)| identity.clone())
+                    .unwrap_or_else(|| panic!("missing recursive template name {spelling}"))
+            })
+            .collect()
     }
 }
 
@@ -567,6 +635,32 @@ fn resolved_id(
         .unwrap_or_else(|| panic!("missing declaration {modules:?}/{spelling}"))
         .encoded_id()
         .clone()
+}
+
+fn seed_recursive_template_vocabulary(socket: &Path) -> FixedNames {
+    let sealed = exchange(
+        socket,
+        authority_request(AuthorityOperation::SealUniversal(SealUniversal {
+            operation_key: OperationKey::new([39; 32]),
+            expected: expected(current(socket)),
+            declarations: vec![DeclarationNode::Module {
+                spelling: Name::new("fixture"),
+                declarations: vec![
+                    DeclarationNode::Member(Name::new("Clone")),
+                    DeclarationNode::Member(Name::new("rustfmt")),
+                    DeclarationNode::Member(Name::new("skip")),
+                ],
+            }],
+            references: Vec::new(),
+        })),
+        false,
+    )
+    .0;
+    let receipt = match sealed {
+        AuthorityReply::Committed(CommittedReceipt::SealUniversal(receipt)) => receipt,
+        other => panic!("expected recursive template vocabulary seal, got {other:?}"),
+    };
+    FixedNames::with_recursive_template_vocabulary(&receipt)
 }
 
 fn source_path(path: &str) -> NomosSourcePath {
@@ -609,6 +703,154 @@ fn assert_no_committed_receipt(socket: &Path, operation_key: [u8; 32]) {
     ));
 }
 
+fn recursive_ethos_population(fixed: &FixedNames) -> EthosPopulationArchive {
+    let grandchild = WholeEthosEnumeration::new(
+        encoded(&[310, 3]),
+        WholeEthosVisibility::Private,
+        WholeEthosAttributes::empty(),
+        vec![WholeEthosVariant::new(
+            encoded(&[310, 3, 1]),
+            WholeEthosAttributes::empty(),
+            WholeEthosVariantPayload::Unit,
+        )],
+    );
+    let child = WholeEthosEnumeration::new(
+        encoded(&[310, 2]),
+        WholeEthosVisibility::Private,
+        WholeEthosAttributes::empty(),
+        vec![
+            WholeEthosVariant::new(
+                encoded(&[310, 2, 1]),
+                WholeEthosAttributes::empty(),
+                WholeEthosVariantPayload::Unit,
+            ),
+            WholeEthosVariant::new(
+                encoded(&[310, 2, 2]),
+                WholeEthosAttributes::empty(),
+                WholeEthosVariantPayload::Tuple(
+                    WholeEthosTupleFields::new(vec![WholeEthosTypeReference::Identity(
+                        grandchild.name().clone(),
+                    )])
+                    .expect("one grandchild edge"),
+                ),
+            ),
+        ],
+    );
+    let leaf_newtype = WholeEthosNewtype::new(
+        encoded(&[310, 4]),
+        WholeEthosVisibility::Private,
+        WholeEthosAttributes::empty(),
+        WholeEthosWrappedField::new(
+            WholeEthosVisibility::Private,
+            WholeEthosTypeReference::Identity(encoded(&[399, 2])),
+        ),
+    );
+    let root = WholeEthosEnumeration::new(
+        encoded(&[310, 1]),
+        WholeEthosVisibility::Private,
+        WholeEthosAttributes::empty(),
+        vec![
+            WholeEthosVariant::new(
+                encoded(&[310, 1, 1]),
+                WholeEthosAttributes::empty(),
+                WholeEthosVariantPayload::Tuple(
+                    WholeEthosTupleFields::new(vec![
+                        WholeEthosTypeReference::Identity(child.name().clone()),
+                        WholeEthosTypeReference::Identity(leaf_newtype.name().clone()),
+                        WholeEthosTypeReference::Identity(encoded(&[399, 1])),
+                    ])
+                    .expect("child edge, non-enumeration leaf, and absent leaf"),
+                ),
+            ),
+            WholeEthosVariant::new(
+                encoded(&[310, 1, 2]),
+                WholeEthosAttributes::empty(),
+                WholeEthosVariantPayload::Unit,
+            ),
+        ],
+    );
+    let declarations = vec![
+        root.name().clone(),
+        root.variants()[0].name().clone(),
+        root.variants()[1].name().clone(),
+        child.name().clone(),
+        child.variants()[0].name().clone(),
+        child.variants()[1].name().clone(),
+        grandchild.name().clone(),
+        grandchild.variants()[0].name().clone(),
+        leaf_newtype.name().clone(),
+    ];
+    let expected_logos_declarations = declarations.clone();
+    let mut expected_logos_references = vec![
+        child.name().clone(),
+        grandchild.name().clone(),
+        leaf_newtype.name().clone(),
+        encoded(&[399, 1]),
+        encoded(&[399, 2]),
+    ];
+    expected_logos_references.extend(fixed.recursive_template_references());
+    let names = EngineEthosNameTree::try_new(
+        declarations,
+        Vec::new(),
+        Vec::new(),
+        expected_logos_declarations,
+        expected_logos_references,
+    )
+    .expect("complete recursive NameTree plan");
+    encode_ethos_population(
+        WholeEthos::new(vec![
+            WholeEthosItem::Enumeration(root),
+            WholeEthosItem::Enumeration(child),
+            WholeEthosItem::Enumeration(grandchild),
+            WholeEthosItem::Newtype(leaf_newtype),
+        ]),
+        names,
+    )
+    .expect("recursive Ethos population")
+}
+
+fn assert_recursive_output(reply: &NomosReply) -> Vec<u8> {
+    let NomosReply::Transformed(outcome) = reply else {
+        panic!("expected transformed recursive population, got {reply:?}")
+    };
+    type Population = EncodedPopulation<NativeEvaluatedLogos, EngineLogosNameTree>;
+    let restored = rkyv::from_bytes::<Population, rkyv::rancor::Error>(outcome.logos_population())
+        .expect("decode native recursive Logos population");
+    assert_eq!(restored.encoded_form().values().len(), 4);
+    let NativeEvaluatedTerm::Sequence(attributes) =
+        restored.encoded_form().values()[0].fields()[1].term()
+    else {
+        panic!("recursive enumeration attributes are a sequence")
+    };
+    let constructors = attributes
+        .iter()
+        .map(|attribute| {
+            let NativeEvaluatedTerm::Nested(attribute) = attribute else {
+                panic!("recursive attributes contain only attribute values")
+            };
+            attribute.constructor().local()
+        })
+        .collect::<Vec<_>>();
+    // Recursive descendants precede each parent; InsertAt places rustfmt.skip
+    // before the inherited child sequence and Clone remains the parent tail.
+    assert_eq!(constructors, vec![3, 3, 1, 3, 3, 1, 1, 1, 3, 1]);
+    assert_eq!(
+        restored.name_tree().declarations(),
+        &[
+            encoded(&[310, 1]),
+            encoded(&[310, 1, 1]),
+            encoded(&[310, 1, 2]),
+            encoded(&[310, 2]),
+            encoded(&[310, 2, 1]),
+            encoded(&[310, 2, 2]),
+            encoded(&[310, 3]),
+            encoded(&[310, 3, 1]),
+            encoded(&[310, 4]),
+        ]
+    );
+    outcome.logos_population().to_vec()
+}
+
 #[test]
 fn authored_nomos_process_dependencies_pin_the_approved_producers() {
     assert!(MANIFEST.contains("e4230f62b55fcf8543477a26d272862a63aa1fc3"));
@@ -626,7 +868,7 @@ fn authored_nomos_deploys_transforms_advances_and_recovers_through_the_process()
     let authority_database = directory.path().join("sema-translator.sema");
     let mut authority = Daemon::start(&authority_socket, &authority_database);
     let textual = textual(&logos());
-    let fixed = FixedNames::new();
+    let fixed = seed_recursive_template_vocabulary(&authority_socket);
     let planned = textual
         .plan_load(
             SOURCE,
@@ -657,6 +899,7 @@ fn authored_nomos_deploys_transforms_advances_and_recovers_through_the_process()
     let loaded = textual
         .complete_load(&planned, &durable, &fixed)
         .expect("materialize from durable authority receipt");
+    let ethos = recursive_ethos_population(&fixed);
     authority.stop();
 
     let population = loaded.population();
@@ -697,28 +940,6 @@ fn authored_nomos_deploys_transforms_advances_and_recovers_through_the_process()
             && committed_at.commit_sequence() == 1
     ));
 
-    let item = encoded(&[500, 1]);
-    let reference = encoded(&[600, 4, 1]);
-    let ethos = encode_ethos_population(
-        WholeEthos::new(vec![WholeEthosItem::Newtype(WholeEthosNewtype::new(
-            item.clone(),
-            WholeEthosVisibility::Public,
-            WholeEthosAttributes::empty(),
-            WholeEthosWrappedField::new(
-                WholeEthosVisibility::Private,
-                WholeEthosTypeReference::Identity(reference.clone()),
-            ),
-        ))]),
-        EngineEthosNameTree::try_new(
-            vec![item.clone()],
-            Vec::new(),
-            Vec::new(),
-            vec![item],
-            vec![reference],
-        )
-        .expect("complete direct NameTree plan"),
-    )
-    .expect("direct Ethos population");
     let transformed = nomos_exchange(
         &nomos_socket,
         &NomosRequest::Transform {
@@ -726,6 +947,7 @@ fn authored_nomos_deploys_transforms_advances_and_recovers_through_the_process()
             ethos: ethos.clone(),
         },
     );
+    let initial_output = assert_recursive_output(&transformed);
     assert!(matches!(
         transformed,
         NomosReply::Transformed(ref outcome)
@@ -774,6 +996,8 @@ fn authored_nomos_deploys_transforms_advances_and_recovers_through_the_process()
                 && outcome.snapshot().generation() == SlotGeneration::initial()
                 && outcome.snapshot().projection_version() == NameTreeProjectionVersion::new(1)
     ));
+    let recovered_output = assert_recursive_output(&recovered_transform);
+    assert_eq!(recovered_output, initial_output);
 
     let stale = nomos_exchange(
         &nomos_socket,
@@ -816,7 +1040,7 @@ fn authored_nomos_seals_recovers_and_renames_through_the_authority_process() {
     let mut daemon = Daemon::start(&socket, &database);
     let logos = logos();
     let textual = textual(&logos);
-    let fixed = FixedNames::new();
+    let fixed = seed_recursive_template_vocabulary(&socket);
     let planned = textual
         .plan_load(
             SOURCE,
@@ -860,11 +1084,11 @@ fn authored_nomos_seals_recovers_and_renames_through_the_authority_process() {
     let mut loaded = textual
         .complete_load(&planned, &durable, &fixed)
         .expect("materialize only from the durable authority receipt");
-    let transformer = resolved_id(&receipt, &["fixture"], "WireNewtype");
-    let wrapped = resolved_id(&receipt, &["fixture", "WireNewtype"], "wrapped");
-    assert_eq!(transformer.chain().len(), 2);
-    assert_eq!(wrapped.chain().len(), 3);
-    assert_eq!(wrapped.chain()[..2], transformer.chain()[..]);
+    let recursive = resolved_id(&receipt, &["fixture"], "ScopeOfStep");
+    let children = resolved_id(&receipt, &["fixture", "ScopeOfStep"], "children");
+    assert_eq!(recursive.chain().len(), 2);
+    assert_eq!(children.chain().len(), 3);
+    assert_eq!(children.chain()[..2], recursive.chain()[..]);
     let content = loaded
         .population()
         .content_identity()
@@ -890,14 +1114,20 @@ fn authored_nomos_seals_recovers_and_renames_through_the_authority_process() {
         .complete_load(&planned, &recovered, &fixed)
         .expect("recovered receipt rematerializes the same encoded document");
     assert_eq!(recovered_load.transformers(), loaded.transformers());
+    let recovered_view = textual
+        .view(recovered_load.decoded(), recovered_load.names())
+        .expect("canonical recursive view after authority restart");
+    assert!(recovered_view.contains("ScopeOfStep.Recursive.Enumeration"));
+    assert!(recovered_view.contains("Invoke.ScopeOfStep"));
+    assert!(recovered_view.contains("InsertAt.children 0 rustfmt.skip"));
 
     let (renamed, rename_event) = exchange(
         &socket,
         authority_request(AuthorityOperation::Rename(Rename {
             operation_key: OperationKey::new([42; 32]),
             expected: expected(current(&socket)),
-            target: wrapped.clone(),
-            new_spelling: Name::new("inner"),
+            target: children.clone(),
+            new_spelling: Name::new("descendants"),
         })),
         true,
     );
@@ -911,8 +1141,8 @@ fn authored_nomos_seals_recovers_and_renames_through_the_authority_process() {
     ));
     loaded
         .apply_rename(&rename)
-        .expect("committed spelling-only rename applies to the sibling");
-    assert_eq!(loaded.names().spelling(&wrapped), Some("inner"));
+        .expect("committed spelling-only rename applies to recursive references");
+    assert_eq!(loaded.names().spelling(&children), Some("descendants"));
     assert_eq!(
         loaded
             .population()
@@ -922,9 +1152,11 @@ fn authored_nomos_seals_recovers_and_renames_through_the_authority_process() {
     );
     let viewed = textual
         .view(loaded.decoded(), loaded.names())
-        .expect("render renamed sibling");
-    assert!(viewed.contains("(name.Name inner.Type)"));
-    assert!(viewed.contains("Realize.inner"));
+        .expect("render renamed recursive binding");
+    assert!(viewed.contains("(variant.Name source.Variants descendants.Variants)"));
+    assert!(viewed.contains("Splice.descendants"));
+    assert!(viewed.contains("InsertAt.descendants 0 rustfmt.skip"));
+    assert!(viewed.contains("Invoke.ScopeOfStep"));
 
     let invalid_source = SOURCE.replace("Invoke.WireAttributes", "Invoke.Missing");
     let before = current(&socket);

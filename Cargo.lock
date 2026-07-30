@@ -291,6 +291,7 @@ dependencies = [
  "core-nomos",
  "name-table 0.3.0",
  "nomos-engine",
+ "protos 0.4.0",
  "raw-discovery",
  "rkyv",
  "rust-logos",
