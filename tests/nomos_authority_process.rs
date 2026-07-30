@@ -487,12 +487,14 @@ fn textual(logos: &LogosLanguage) -> TextualNomos {
         TextualNomosWords {
             named: encoded(&[101, 1]),
             structural: encoded(&[101, 2]),
+            recursive: encoded(&[101, 9]),
             newtype: encoded(&[101, 3]),
             structure: encoded(&[101, 8]),
             enumeration: encoded(&[101, 4]),
             realize: encoded(&[101, 5]),
             splice: encoded(&[101, 6]),
             invoke: encoded(&[101, 7]),
+            insert_at: encoded(&[101, 10]),
         },
         vec![
             TextualNomosMetaType {
@@ -525,6 +527,8 @@ impl FixedNames {
                 (encoded(&[101, 5]), "Realize"),
                 (encoded(&[101, 6]), "Splice"),
                 (encoded(&[101, 7]), "Invoke"),
+                (encoded(&[101, 9]), "Recursive"),
+                (encoded(&[101, 10]), "InsertAt"),
                 (encoded(&[102, 1]), "Name"),
                 (encoded(&[102, 2]), "Type"),
             ]
@@ -607,9 +611,9 @@ fn assert_no_committed_receipt(socket: &Path, operation_key: [u8; 32]) {
 
 #[test]
 fn authored_nomos_process_dependencies_pin_the_approved_producers() {
-    assert!(MANIFEST.contains("0773e03eae899e1364cb639280e57520d6d454b2"));
-    assert!(MANIFEST.contains("40ea24045194542a679b97ae34e53c92c2393480"));
-    assert!(MANIFEST.contains("d47e1e4441b7110051aba0f54eb6dea31c057b4c"));
+    assert!(MANIFEST.contains("e4230f62b55fcf8543477a26d272862a63aa1fc3"));
+    assert!(MANIFEST.contains("1af71a9d0625a6404f81cd6fe8b6393ac0c9040f"));
+    assert!(MANIFEST.contains("58fd8036bffcb3cff6e27af4db25690764ecc768"));
     assert!(MANIFEST.contains("6df830ab1ec9f315a5b50e40ffc393b48ea3d412"));
     assert!(MANIFEST.contains("51c02c4a7b6f67d9dad095f11986085d7d65785b"));
     assert!(MANIFEST.contains("0786fbe8caf27552afcdd5deb85bc82ec6088337"));
