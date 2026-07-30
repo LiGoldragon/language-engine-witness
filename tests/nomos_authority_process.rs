@@ -7,11 +7,22 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
+use nomos_engine::{EngineEthosNameTree, encode_ethos_population};
+use signal_nomos::{
+    DeployOutcome, GenerationSelection, NomosDeploymentArtifacts, NomosProjectionArchive,
+    NomosSlotId, ProjectionOutcome, Rejection as NomosRejection, Reply as NomosReply,
+    Request as NomosRequest, SlotExpectation, SlotGeneration, TransformSelector, encode_request,
+};
+use slice_core_ethos::{
+    WholeEthos, WholeEthosAttributes, WholeEthosItem, WholeEthosNewtype, WholeEthosTypeReference,
+    WholeEthosVisibility, WholeEthosWrappedField,
+};
 use slice_core_logos::{LogosLanguage, LogosLanguageTypeIds, LogosLanguageWords};
 use slice_core_nomos::{
-    MetaType, NomosFileManifest, NomosLoadError, NomosManifestFile, NomosManifestLoadError,
-    NomosModulePath, NomosSourcePath, TemplateFutureOutput, TemplateLandingShape, TemplateLanguage,
-    TextualNomos, TextualNomosMetaType, TextualNomosTypeIds, TextualNomosWords,
+    MetaType, NameTreeProjectionVersion, NomosFileManifest, NomosLoadError, NomosManifestFile,
+    NomosManifestLoadError, NomosModulePath, NomosSourcePath, TemplateFutureOutput,
+    TemplateLandingShape, TemplateLanguage, TextualNomos, TextualNomosMetaType,
+    TextualNomosTypeIds, TextualNomosWords,
 };
 use slice_name_table::{LocalEncodedId, Name, OperationKey};
 use slice_sema_translator::{AUTHORITY_ROUTE, principal_for_unix_uid};
@@ -129,6 +140,55 @@ impl Drop for Daemon {
     }
 }
 
+struct NomosDaemon {
+    child: Child,
+    socket: PathBuf,
+}
+
+impl NomosDaemon {
+    fn start(socket: &Path, database: &Path) -> Self {
+        let program = std::env::var_os("NOMOS_ENGINE_BIN").expect("NOMOS_ENGINE_BIN");
+        let mut child = Command::new(program)
+            .arg("daemon")
+            .arg(socket)
+            .arg(database)
+            .arg(process_uid().to_string())
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .expect("spawn nomos-engine daemon");
+        let line = BufReader::new(child.stdout.take().expect("captured daemon stdout"))
+            .lines()
+            .next()
+            .expect("daemon readiness line")
+            .expect("read daemon readiness");
+        assert_eq!(line, format!("READY {}", socket.display()));
+        Self {
+            child,
+            socket: socket.to_path_buf(),
+        }
+    }
+
+    fn stop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while self.socket.exists() && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        if self.socket.exists() {
+            std::fs::remove_file(&self.socket).expect("remove stale Nomos socket");
+        }
+    }
+}
+
+impl Drop for NomosDaemon {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
 fn process_uid() -> u32 {
     std::fs::metadata(".")
         .expect("current directory metadata")
@@ -227,6 +287,31 @@ fn read_frame(stream: &mut UnixStream) -> Vec<u8> {
     bytes
 }
 
+fn nomos_exchange(socket: &Path, request: &NomosRequest) -> NomosReply {
+    let request = encode_request(request).expect("encode Nomos request");
+    let mut stream = UnixStream::connect(socket).expect("connect nomos-engine daemon");
+    stream
+        .write_all(
+            &u32::try_from(request.len())
+                .expect("bounded request")
+                .to_be_bytes(),
+        )
+        .expect("write request length");
+    stream.write_all(&request).expect("write Nomos request");
+    let mut length = [0; 4];
+    stream
+        .read_exact(&mut length)
+        .expect("read Nomos reply length");
+    let mut reply = vec![0; u32::from_be_bytes(length) as usize];
+    stream
+        .read_exact(&mut reply)
+        .expect("read complete Nomos reply");
+    let reply =
+        rkyv::from_bytes::<NomosReply, rkyv::rancor::Error>(&reply).expect("decode Nomos reply");
+    reply.validate().expect("validate Nomos reply");
+    reply
+}
+
 fn current(socket: &Path) -> DatabaseMarker {
     match exchange(
         socket,
@@ -259,6 +344,7 @@ fn logos() -> LogosLanguage {
     LogosLanguage::seal(
         LogosLanguageTypeIds {
             newtype: encoded(&[1]),
+            structure: encoded(&[13]),
             enumeration: encoded(&[2]),
             visibility: encoded(&[3]),
             attributes: encoded(&[4]),
@@ -269,6 +355,7 @@ fn logos() -> LogosLanguage {
             generics: encoded(&[9]),
             generic_parameter: encoded(&[10]),
             type_reference: encoded(&[11]),
+            field: encoded(&[14]),
             variant: encoded(&[12]),
         },
         LogosLanguageWords {
@@ -321,6 +408,7 @@ fn textual(logos: &LogosLanguage) -> TextualNomos {
             input_signature: encoded(&[100, 7]),
             input_parameter: encoded(&[100, 8]),
             newtype_body: encoded(&[100, 9]),
+            struct_body: encoded(&[100, 12]),
             enumeration_body: encoded(&[100, 10]),
             attributes_body: encoded(&[100, 11]),
         },
@@ -328,6 +416,7 @@ fn textual(logos: &LogosLanguage) -> TextualNomos {
             named: encoded(&[101, 1]),
             structural: encoded(&[101, 2]),
             newtype: encoded(&[101, 3]),
+            structure: encoded(&[101, 8]),
             enumeration: encoded(&[101, 4]),
             realize: encoded(&[101, 5]),
             splice: encoded(&[101, 6]),
@@ -446,10 +535,201 @@ fn assert_no_committed_receipt(socket: &Path, operation_key: [u8; 32]) {
 
 #[test]
 fn authored_nomos_process_dependencies_pin_the_approved_producers() {
-    assert!(MANIFEST.contains("7cd62205a19938cb3921a4cad56d79a596c662f0"));
+    assert!(MANIFEST.contains("0773e03eae899e1364cb639280e57520d6d454b2"));
+    assert!(MANIFEST.contains("40ea24045194542a679b97ae34e53c92c2393480"));
+    assert!(MANIFEST.contains("d47e1e4441b7110051aba0f54eb6dea31c057b4c"));
     assert!(MANIFEST.contains("6df830ab1ec9f315a5b50e40ffc393b48ea3d412"));
     assert!(MANIFEST.contains("51c02c4a7b6f67d9dad095f11986085d7d65785b"));
     assert!(MANIFEST.contains("0786fbe8caf27552afcdd5deb85bc82ec6088337"));
+}
+
+#[test]
+fn authored_nomos_deploys_transforms_advances_and_recovers_through_the_process() {
+    let directory = tempfile::tempdir().expect("isolated process directory");
+    let authority_socket = directory.path().join("sema-translator.sock");
+    let authority_database = directory.path().join("sema-translator.sema");
+    let mut authority = Daemon::start(&authority_socket, &authority_database);
+    let textual = textual(&logos());
+    let fixed = FixedNames::new();
+    let planned = textual
+        .plan_load(
+            SOURCE,
+            &fixed,
+            fixture_module(),
+            [44; 32],
+            expected(current(&authority_socket)),
+        )
+        .expect("allocation-free authored Nomos plan");
+    let sealed = exchange(
+        &authority_socket,
+        authority_request(AuthorityOperation::SealUniversal(planned.request().clone())),
+        true,
+    )
+    .0;
+    match sealed {
+        AuthorityReply::Committed(CommittedReceipt::SealUniversal(_)) => {}
+        other => panic!("expected committed authored Nomos seal, got {other:?}"),
+    }
+    let durable = exchange(
+        &authority_socket,
+        authority_request(AuthorityOperation::Read(ReadOperation::CommittedReceipt {
+            operation_key: OperationKey::new([44; 32]),
+        })),
+        false,
+    )
+    .0;
+    let loaded = textual
+        .complete_load(&planned, &durable, &fixed)
+        .expect("materialize from durable authority receipt");
+    authority.stop();
+
+    let population = loaded.population();
+    let initial = population
+        .seal(NameTreeProjectionVersion::initial())
+        .expect("initial sealed population");
+    let successor = population
+        .advance_projection(&initial)
+        .expect("successor projection");
+    let identity = initial.capsule().content_identity();
+    let initial_artifacts =
+        NomosDeploymentArtifacts::from_population(&initial).expect("initial deployment artifacts");
+    let successor_artifacts = NomosDeploymentArtifacts::from_population(&successor)
+        .expect("successor deployment artifacts");
+
+    let nomos_socket = directory.path().join("nomos.sock");
+    let nomos_database = directory.path().join("nomos.sema");
+    let slot = NomosSlotId::new(44);
+    let mut nomos = NomosDaemon::start(&nomos_socket, &nomos_database);
+    let deployed = nomos_exchange(
+        &nomos_socket,
+        &NomosRequest::Deploy {
+            slot,
+            expected: SlotExpectation::Empty,
+            artifacts: initial_artifacts.clone(),
+            selection: GenerationSelection::enriched(),
+        },
+    );
+    assert!(matches!(
+        deployed,
+        NomosReply::Deployed(DeployOutcome::FreshDeployed {
+            identity: deployed_identity,
+            generation,
+            committed_at,
+            ..
+        }) if deployed_identity == identity
+            && generation == SlotGeneration::initial()
+            && committed_at.commit_sequence() == 1
+    ));
+
+    let item = encoded(&[500, 1]);
+    let reference = encoded(&[600, 4, 1]);
+    let ethos = encode_ethos_population(
+        WholeEthos::new(vec![WholeEthosItem::Newtype(WholeEthosNewtype::new(
+            item.clone(),
+            WholeEthosVisibility::Public,
+            WholeEthosAttributes::empty(),
+            WholeEthosWrappedField::new(
+                WholeEthosVisibility::Private,
+                WholeEthosTypeReference::Identity(reference.clone()),
+            ),
+        ))]),
+        EngineEthosNameTree::try_new(
+            vec![item.clone()],
+            Vec::new(),
+            Vec::new(),
+            vec![item],
+            vec![reference],
+        )
+        .expect("complete direct NameTree plan"),
+    )
+    .expect("direct Ethos population");
+    let transformed = nomos_exchange(
+        &nomos_socket,
+        &NomosRequest::Transform {
+            selector: TransformSelector::Live(slot),
+            ethos: ethos.clone(),
+        },
+    );
+    assert!(matches!(
+        transformed,
+        NomosReply::Transformed(ref outcome)
+            if outcome.snapshot().identity() == identity
+                && outcome.snapshot().generation() == SlotGeneration::initial()
+                && outcome.snapshot().projection_version()
+                    == NameTreeProjectionVersion::initial()
+                && !outcome.logos_population().is_empty()
+    ));
+
+    let advanced = nomos_exchange(
+        &nomos_socket,
+        &NomosRequest::AdvanceProjection {
+            capsule: identity,
+            expected_previous_version: NameTreeProjectionVersion::initial(),
+            projection: NomosProjectionArchive::from_projection(successor.projection())
+                .expect("successor projection archive"),
+            translator_receipt: None,
+        },
+    );
+    assert!(matches!(
+        advanced,
+        NomosReply::ProjectionAdvanced(ProjectionOutcome::Advanced {
+            previous_version,
+            version,
+            committed_at,
+            ..
+        }) if previous_version == NameTreeProjectionVersion::initial()
+            && version == NameTreeProjectionVersion::new(1)
+            && committed_at.commit_sequence() == 2
+    ));
+
+    nomos.stop();
+    let mut recovered = NomosDaemon::start(&nomos_socket, &nomos_database);
+    let recovered_transform = nomos_exchange(
+        &nomos_socket,
+        &NomosRequest::Transform {
+            selector: TransformSelector::Live(slot),
+            ethos,
+        },
+    );
+    assert!(matches!(
+        recovered_transform,
+        NomosReply::Transformed(ref outcome)
+            if outcome.snapshot().identity() == identity
+                && outcome.snapshot().generation() == SlotGeneration::initial()
+                && outcome.snapshot().projection_version() == NameTreeProjectionVersion::new(1)
+    ));
+
+    let stale = nomos_exchange(
+        &nomos_socket,
+        &NomosRequest::Deploy {
+            slot,
+            expected: SlotExpectation::Generation(SlotGeneration::new(999)),
+            artifacts: initial_artifacts,
+            selection: GenerationSelection::enriched(),
+        },
+    );
+    assert_eq!(stale, NomosReply::Rejected(NomosRejection::ProjectionStale));
+    let current = nomos_exchange(
+        &nomos_socket,
+        &NomosRequest::Deploy {
+            slot,
+            expected: SlotExpectation::Generation(SlotGeneration::new(999)),
+            artifacts: successor_artifacts,
+            selection: GenerationSelection::enriched(),
+        },
+    );
+    assert!(matches!(
+        current,
+        NomosReply::Deployed(DeployOutcome::AlreadyCurrent {
+            identity: current_identity,
+            generation,
+            observed_at,
+            ..
+        }) if current_identity == identity
+            && generation == SlotGeneration::initial()
+            && observed_at.commit_sequence() == 2
+    ));
+    recovered.stop();
 }
 
 #[test]
@@ -509,7 +789,10 @@ fn authored_nomos_seals_recovers_and_renames_through_the_authority_process() {
     assert_eq!(transformer.chain().len(), 2);
     assert_eq!(wrapped.chain().len(), 3);
     assert_eq!(wrapped.chain()[..2], transformer.chain()[..]);
-    let content = loaded.content_identity().expect("Nomos content identity");
+    let content = loaded
+        .population()
+        .content_identity()
+        .expect("Nomos content identity");
 
     daemon.stop();
     assert!(UnixStream::connect(&socket).is_err());
@@ -555,7 +838,10 @@ fn authored_nomos_seals_recovers_and_renames_through_the_authority_process() {
         .expect("committed spelling-only rename applies to the sibling");
     assert_eq!(loaded.names().spelling(&wrapped), Some("inner"));
     assert_eq!(
-        loaded.content_identity().expect("content identity"),
+        loaded
+            .population()
+            .content_identity()
+            .expect("content identity"),
         content
     );
     let viewed = textual

@@ -1,3 +1,8 @@
-`spirit-min.ethos` is the read-only compatibility fixture from `golden-bridge @ 03929a478dec18b597ba8994aaea9e576b41a717`, renamed from its historical `.schema` path without changing its contents. It is driven end to end through the four-process pipeline; the witness asserts the pipeline's emitted Rust compiles and behaves, and no longer generates or byte-compares a `schema-rust` reference projection.
+`spirit-domain.ethos` is an exact read-only inventory witness for the separately
+pinned `signal-domain` source. A Nix check compares both files byte for byte
+without evaluating or linking the legacy `signal-domain` crate.
 
-`second-min.ethos` is an author-minted minimal legacy-form Ethos document, distinct from the frozen golden-bridge fixture. It exists only to drive a genuinely second document through the restarted four-process pipeline, proving the restarted daemons resume push progression and store durably.
+The Nomos process witness has no checked-in package or pipeline fixture. It
+authors and seals its population through the real sema-translator process, then
+deploys the resulting authenticated Capsule through the real `nomos-engine`
+process in an isolated temporary directory.
