@@ -9,6 +9,10 @@ single nested Universal allocation, and materializes the typed population only
 from the durable receipt. It then launches the production `nomos-engine`
 daemon against its own isolated `nomos.sema` database and communicates through
 the pure length-prefixed `signal-nomos` request/reply contract.
+Both daemon readiness handshakes and every process socket read/write are
+bounded to ten seconds. Startup failure kills and reaps the child and removes
+its temporary socket, so a live but stalled process cannot hang the owning Nix
+gate indefinitely.
 
 The witness deploys the authority-authored Capsule into an opaque slot,
 transforms a nonempty direct Whole Ethos population through the native authored

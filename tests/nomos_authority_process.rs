@@ -5,6 +5,7 @@ use std::os::unix::fs::symlink;
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
 use nomos_engine::{EngineEthosNameTree, encode_ethos_population};
@@ -87,6 +88,8 @@ Public Invoke.WireAttributes Realize.name Private Realize.wrapped
 {}
 {}"#;
 const MANIFEST: &str = include_str!("../Cargo.toml");
+const PROCESS_STARTUP_TIMEOUT: Duration = Duration::from_secs(10);
+const PROCESS_IO_TIMEOUT: Duration = Duration::from_secs(10);
 
 struct Daemon {
     child: Child,
@@ -109,12 +112,7 @@ impl Daemon {
             .stderr(Stdio::inherit())
             .spawn()
             .expect("spawn sema-translator daemon");
-        let line = BufReader::new(child.stdout.take().expect("captured daemon stdout"))
-            .lines()
-            .next()
-            .expect("daemon readiness line")
-            .expect("read daemon readiness");
-        assert_eq!(line, format!("READY {}", socket.display()));
+        wait_for_readiness(&mut child, socket, "sema-translator");
         Self {
             child,
             socket: socket.to_path_buf(),
@@ -158,12 +156,7 @@ impl NomosDaemon {
             .stderr(Stdio::inherit())
             .spawn()
             .expect("spawn nomos-engine daemon");
-        let line = BufReader::new(child.stdout.take().expect("captured daemon stdout"))
-            .lines()
-            .next()
-            .expect("daemon readiness line")
-            .expect("read daemon readiness");
-        assert_eq!(line, format!("READY {}", socket.display()));
+        wait_for_readiness(&mut child, socket, "nomos-engine");
         Self {
             child,
             socket: socket.to_path_buf(),
@@ -193,6 +186,75 @@ fn process_uid() -> u32 {
     std::fs::metadata(".")
         .expect("current directory metadata")
         .uid()
+}
+
+fn wait_for_readiness(child: &mut Child, socket: &Path, daemon: &str) {
+    let stdout = child
+        .stdout
+        .take()
+        .unwrap_or_else(|| panic!("{daemon} readiness stdout was not captured"));
+    let (sender, receiver) = mpsc::sync_channel(1);
+    let reader = std::thread::spawn(move || {
+        let readiness = BufReader::new(stdout).lines().next().transpose();
+        let _ = sender.send(readiness);
+    });
+    let received = receiver.recv_timeout(PROCESS_STARTUP_TIMEOUT);
+    let timed_out = matches!(&received, Err(RecvTimeoutError::Timeout));
+    if timed_out {
+        terminate_child(child);
+    }
+    let reader_panicked = reader.join().is_err();
+    let expected = format!("READY {}", socket.display());
+    let outcome = match received {
+        Ok(Ok(Some(line))) if line == expected => Ok(()),
+        Ok(Ok(Some(line))) => Err(format!(
+            "{daemon} emitted an unexpected readiness line: expected {expected:?}, got {line:?}"
+        )),
+        Ok(Ok(None)) => Err(format!("{daemon} closed stdout before readiness")),
+        Ok(Err(error)) => Err(format!("{daemon} readiness read failed: {error}")),
+        Err(RecvTimeoutError::Timeout) => Err(format!(
+            "{daemon} did not become ready within {} seconds",
+            PROCESS_STARTUP_TIMEOUT.as_secs()
+        )),
+        Err(RecvTimeoutError::Disconnected) if reader_panicked => {
+            Err(format!("{daemon} readiness reader panicked"))
+        }
+        Err(RecvTimeoutError::Disconnected) => {
+            Err(format!("{daemon} readiness reader disconnected"))
+        }
+    };
+    if let Err(detail) = outcome {
+        if !timed_out {
+            terminate_child(child);
+        }
+        remove_stale_socket(socket, daemon);
+        panic!("{detail}");
+    }
+}
+
+fn terminate_child(child: &mut Child) {
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+fn remove_stale_socket(socket: &Path, daemon: &str) {
+    if socket.exists() {
+        std::fs::remove_file(socket).unwrap_or_else(|error| {
+            panic!("remove stale {daemon} socket after startup failure: {error}")
+        });
+    }
+}
+
+fn connect_process_socket(socket: &Path, daemon: &str) -> UnixStream {
+    let stream = UnixStream::connect(socket)
+        .unwrap_or_else(|error| panic!("connect {daemon} process socket: {error}"));
+    stream
+        .set_read_timeout(Some(PROCESS_IO_TIMEOUT))
+        .unwrap_or_else(|error| panic!("set {daemon} read timeout: {error}"));
+    stream
+        .set_write_timeout(Some(PROCESS_IO_TIMEOUT))
+        .unwrap_or_else(|error| panic!("set {daemon} write timeout: {error}"));
+    stream
 }
 
 fn process_principal() -> PrincipalId {
@@ -242,12 +304,13 @@ fn exchange(
             request: Request::from_payload(request),
         },
     );
-    let mut stream = UnixStream::connect(socket).expect("connect sema-translator daemon");
+    let mut stream = connect_process_socket(socket, "sema-translator");
     stream
         .write_all(&frame.encode_length_prefixed().expect("encode request"))
-        .expect("write request");
+        .unwrap_or_else(|error| panic!("write sema-translator request within timeout: {error}"));
     let reply =
-        TranslatorFrame::decode_length_prefixed(&read_frame(&mut stream)).expect("decode reply");
+        TranslatorFrame::decode_length_prefixed(&read_frame(&mut stream, "sema-translator reply"))
+            .expect("decode reply");
     let reply = match reply.into_body() {
         StreamingFrameBody::Reply {
             reply: Reply::Accepted { per_operation, .. },
@@ -263,9 +326,12 @@ fn exchange(
         other => panic!("expected authority reply frame, got {other:?}"),
     };
     let event = if expect_event {
-        match TranslatorFrame::decode_length_prefixed(&read_frame(&mut stream))
-            .expect("decode post-commit event")
-            .into_body()
+        match TranslatorFrame::decode_length_prefixed(&read_frame(
+            &mut stream,
+            "sema-translator post-commit event",
+        ))
+        .expect("decode post-commit event")
+        .into_body()
         {
             StreamingFrameBody::SubscriptionEvent { event, .. } => Some(event),
             other => panic!("expected authority event frame, got {other:?}"),
@@ -276,36 +342,42 @@ fn exchange(
     (reply, event)
 }
 
-fn read_frame(stream: &mut UnixStream) -> Vec<u8> {
+fn read_frame(stream: &mut UnixStream, phase: &str) -> Vec<u8> {
     let mut length = [0; 4];
-    stream.read_exact(&mut length).expect("read frame length");
+    stream
+        .read_exact(&mut length)
+        .unwrap_or_else(|error| panic!("read {phase} length within timeout: {error}"));
     let length = u32::from_be_bytes(length) as usize;
     let mut bytes = Vec::with_capacity(length + 4);
     bytes.extend_from_slice(&(length as u32).to_be_bytes());
     bytes.resize(length + 4, 0);
-    stream.read_exact(&mut bytes[4..]).expect("read frame body");
+    stream
+        .read_exact(&mut bytes[4..])
+        .unwrap_or_else(|error| panic!("read {phase} body within timeout: {error}"));
     bytes
 }
 
 fn nomos_exchange(socket: &Path, request: &NomosRequest) -> NomosReply {
     let request = encode_request(request).expect("encode Nomos request");
-    let mut stream = UnixStream::connect(socket).expect("connect nomos-engine daemon");
+    let mut stream = connect_process_socket(socket, "nomos-engine");
     stream
         .write_all(
             &u32::try_from(request.len())
                 .expect("bounded request")
                 .to_be_bytes(),
         )
-        .expect("write request length");
-    stream.write_all(&request).expect("write Nomos request");
+        .unwrap_or_else(|error| panic!("write Nomos request length within timeout: {error}"));
+    stream
+        .write_all(&request)
+        .unwrap_or_else(|error| panic!("write Nomos request within timeout: {error}"));
     let mut length = [0; 4];
     stream
         .read_exact(&mut length)
-        .expect("read Nomos reply length");
+        .unwrap_or_else(|error| panic!("read Nomos reply length within timeout: {error}"));
     let mut reply = vec![0; u32::from_be_bytes(length) as usize];
     stream
         .read_exact(&mut reply)
-        .expect("read complete Nomos reply");
+        .unwrap_or_else(|error| panic!("read complete Nomos reply within timeout: {error}"));
     let reply =
         rkyv::from_bytes::<NomosReply, rkyv::rancor::Error>(&reply).expect("decode Nomos reply");
     reply.validate().expect("validate Nomos reply");
