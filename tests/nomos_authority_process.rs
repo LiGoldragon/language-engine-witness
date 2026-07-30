@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::io::{BufRead as _, BufReader, Read as _, Write as _};
 use std::os::unix::fs::MetadataExt as _;
+use std::os::unix::fs::symlink;
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -8,8 +9,9 @@ use std::time::{Duration, Instant};
 
 use slice_core_logos::{LogosLanguage, LogosLanguageTypeIds, LogosLanguageWords};
 use slice_core_nomos::{
-    MetaType, NomosLoadError, NomosModulePath, TemplateFutureOutput, TemplateLandingShape,
-    TemplateLanguage, TextualNomos, TextualNomosMetaType, TextualNomosTypeIds, TextualNomosWords,
+    MetaType, NomosFileManifest, NomosLoadError, NomosManifestFile, NomosManifestLoadError,
+    NomosModulePath, NomosSourcePath, TemplateFutureOutput, TemplateLandingShape, TemplateLanguage,
+    TextualNomos, TextualNomosMetaType, TextualNomosTypeIds, TextualNomosWords,
 };
 use slice_name_table::{LocalEncodedId, Name, OperationKey};
 use slice_sema_translator::{AUTHORITY_ROUTE, principal_for_unix_uid};
@@ -33,6 +35,28 @@ WireAttributes.Named {
 ()
 []
 }
+WireNewtype.Structural.Newtype {
+(name.Name wrapped.Type)
+Public Invoke.WireAttributes Realize.name Private Realize.wrapped
+}
+}
+{}
+{}"#;
+const ATTRIBUTES_SOURCE: &str = r#"{1}
+[]
+[]
+{
+WireAttributes.Named {
+()
+[]
+}
+}
+{}
+{}"#;
+const NEWTYPE_SOURCE: &str = r#"{1}
+[]
+[]
+{
 WireNewtype.Structural.Newtype {
 (name.Name wrapped.Type)
 Public Invoke.WireAttributes Realize.name Private Realize.wrapped
@@ -369,9 +393,49 @@ fn resolved_id(
         .clone()
 }
 
+fn source_path(path: &str) -> NomosSourcePath {
+    NomosSourcePath::try_new(path).expect("valid relative .nomos path")
+}
+
+fn fixture_module() -> NomosModulePath {
+    NomosModulePath::try_from_spellings(["fixture"]).expect("fixture module")
+}
+
+fn file_manifest() -> NomosFileManifest {
+    NomosFileManifest(
+        source_path("entry.nomos"),
+        vec![
+            NomosManifestFile(source_path("attributes.nomos"), fixture_module(), vec![]),
+            NomosManifestFile(
+                source_path("entry.nomos"),
+                fixture_module(),
+                vec![source_path("attributes.nomos")],
+            ),
+        ],
+    )
+}
+
+fn assert_no_committed_receipt(socket: &Path, operation_key: [u8; 32]) {
+    let operation_key = OperationKey::new(operation_key);
+    let reply = exchange(
+        socket,
+        authority_request(AuthorityOperation::Read(ReadOperation::CommittedReceipt {
+            operation_key,
+        })),
+        false,
+    )
+    .0;
+    assert!(matches!(
+        reply,
+        AuthorityReply::Rejected(NoWriteFailure::UnknownCommittedReceipt {
+            operation_key: missing
+        }) if missing == operation_key
+    ));
+}
+
 #[test]
 fn authored_nomos_process_dependencies_pin_the_approved_producers() {
-    assert!(MANIFEST.contains("4e8d71103612ecff683bb7db5407a24f97dbc095"));
+    assert!(MANIFEST.contains("94cec6ed90cda69dd0f3b94bae074deaf459c8e4"));
     assert!(MANIFEST.contains("6df830ab1ec9f315a5b50e40ffc393b48ea3d412"));
     assert!(MANIFEST.contains("51c02c4a7b6f67d9dad095f11986085d7d65785b"));
     assert!(MANIFEST.contains("0786fbe8caf27552afcdd5deb85bc82ec6088337"));
@@ -513,4 +577,140 @@ fn authored_nomos_seals_recovers_and_renames_through_the_authority_process() {
     assert_eq!(current(&socket), before);
 
     recovered_daemon.stop();
+}
+
+// [not-understood-by-psyche, Entry 7, NomosTrainAddendum-2026-07-30]
+// The resolved files populate one self-contained v1 package namespace; this
+// process witness does not introduce cross-package Invoke lookup.
+#[test]
+fn authored_nomos_manifest_is_one_process_request_and_graph_failures_leave_no_receipt() {
+    let directory = tempfile::tempdir().expect("isolated authority directory");
+    let source_root = directory.path().join("sources");
+    std::fs::create_dir(&source_root).expect("create source root");
+    std::fs::write(source_root.join("attributes.nomos"), ATTRIBUTES_SOURCE)
+        .expect("write attributes source");
+    std::fs::write(source_root.join("entry.nomos"), NEWTYPE_SOURCE).expect("write entry source");
+    let socket = directory.path().join("sema-translator.sock");
+    let database = directory.path().join("sema-translator.sema");
+    let mut daemon = Daemon::start(&socket, &database);
+    let logos = logos();
+    let textual = textual(&logos);
+    let fixed = FixedNames::new();
+
+    let planned = textual
+        .plan_file_population(
+            &source_root,
+            &file_manifest(),
+            &fixed,
+            [51; 32],
+            expected(current(&socket)),
+        )
+        .expect("all files and graph edges plan before one request exists");
+    assert_eq!(planned.request().declarations.len(), 1);
+    assert_eq!(planned.request().references.len(), 3);
+    let (committed, event) = exchange(
+        &socket,
+        authority_request(AuthorityOperation::SealUniversal(planned.request().clone())),
+        true,
+    );
+    let receipt = match &committed {
+        AuthorityReply::Committed(CommittedReceipt::SealUniversal(receipt)) => receipt,
+        other => panic!("expected committed manifest allocation, got {other:?}"),
+    };
+    assert!(matches!(
+        event,
+        Some(PostCommitEvent::UniversalSealed(ref committed)) if committed == receipt
+    ));
+    let durable = exchange(
+        &socket,
+        authority_request(AuthorityOperation::Read(ReadOperation::CommittedReceipt {
+            operation_key: OperationKey::new([51; 32]),
+        })),
+        false,
+    )
+    .0;
+    let population = textual
+        .complete_file_population(&planned, &durable, &fixed)
+        .expect("durable receipt materializes both source files");
+    assert_eq!(population.transformers().declarations().len(), 2);
+
+    let before_refusals = current(&socket);
+    let missing = NomosFileManifest(
+        source_path("entry.nomos"),
+        vec![NomosManifestFile(
+            source_path("entry.nomos"),
+            fixture_module(),
+            vec![source_path("missing.nomos")],
+        )],
+    );
+    assert!(matches!(
+        textual.plan_file_population(
+            &source_root,
+            &missing,
+            &fixed,
+            [52; 32],
+            expected(before_refusals)
+        ),
+        Err(NomosManifestLoadError::MissingDependency(_, _))
+    ));
+    assert_eq!(current(&socket), before_refusals);
+    assert_no_committed_receipt(&socket, [52; 32]);
+
+    let cyclic = NomosFileManifest(
+        source_path("entry.nomos"),
+        vec![
+            NomosManifestFile(
+                source_path("entry.nomos"),
+                fixture_module(),
+                vec![source_path("attributes.nomos")],
+            ),
+            NomosManifestFile(
+                source_path("attributes.nomos"),
+                fixture_module(),
+                vec![source_path("entry.nomos")],
+            ),
+        ],
+    );
+    assert!(matches!(
+        textual.plan_file_population(
+            &source_root,
+            &cyclic,
+            &fixed,
+            [53; 32],
+            expected(before_refusals)
+        ),
+        Err(NomosManifestLoadError::DependencyCycle(_))
+    ));
+    assert_eq!(current(&socket), before_refusals);
+    assert_no_committed_receipt(&socket, [53; 32]);
+
+    std::fs::write(directory.path().join("outside.nomos"), ATTRIBUTES_SOURCE)
+        .expect("write outside source");
+    symlink(
+        directory.path().join("outside.nomos"),
+        source_root.join("escape.nomos"),
+    )
+    .expect("create source-root escape");
+    let escaping = NomosFileManifest(
+        source_path("escape.nomos"),
+        vec![NomosManifestFile(
+            source_path("escape.nomos"),
+            fixture_module(),
+            vec![],
+        )],
+    );
+    assert!(matches!(
+        textual.plan_file_population(
+            &source_root,
+            &escaping,
+            &fixed,
+            [54; 32],
+            expected(before_refusals)
+        ),
+        Err(NomosManifestLoadError::SourceEscapesRoot(_))
+    ));
+    assert_eq!(current(&socket), before_refusals);
+    assert_no_committed_receipt(&socket, [54; 32]);
+
+    daemon.stop();
 }
