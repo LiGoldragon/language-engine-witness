@@ -7,8 +7,10 @@ use std::process::Command;
 use nexus_core_ethos::{
     EthosCodec, EthosGrammarIdentities, EthosGrammarIds, WholeEthosBuiltinPriors,
 };
-use nexus_core_logos::WholeLogosItem;
-use nexus_core_nomos::{NexusStructuralTransformation, NexusTransformation};
+use nexus_core_logos::{WholeLogos, WholeLogosItem, WholeLogosTypeAttributes};
+use nexus_core_nomos::{
+    InterfaceTypeStructuralTransformation, NexusStructuralTransformation, NexusTransformation,
+};
 use nexus_rust_logos::{
     FixtureRustEmittedIdentifier, FixtureRustNameProjectionTable, FixtureRustVocabulary,
     FixtureRustVocabularyIds, RustLogos,
@@ -21,6 +23,19 @@ use slice_structural_codec::{
 };
 
 const NEXUS_SOURCE: &str = include_str!("fixtures/nexus.ethos");
+const INTERFACE_TYPE_SOURCE: &str = r#"Interface.1
+[]
+{
+  []
+  []
+  []
+  [
+    WireEnvelope.Entry
+    WireProduct.{Entry Vector.Entry}
+    WireChoice.[Empty Batch.Vector.Entry]
+  ]
+}
+"#;
 const FIXTURE_VOCABULARY: &[&str] = &[
     "Entry",
     "Referent",
@@ -41,6 +56,11 @@ const FIXTURE_VOCABULARY: &[&str] = &[
     "guardReferent",
     "Integer",
     "Vector",
+    "WireEnvelope",
+    "WireProduct",
+    "WireChoice",
+    "Empty",
+    "Batch",
 ];
 
 fn encoded(root: VocabularyRoot, local: u16) -> VocabularyEncodedId {
@@ -123,9 +143,14 @@ impl FixtureBindings {
     fn rust_projections(&self) -> FixtureRustNameProjectionTable {
         FixtureRustNameProjectionTable::try_from_entries(FIXTURE_VOCABULARY.iter().map(
             |spelling| {
+                let rust_spelling = if *spelling == "Vector" {
+                    "Vec"
+                } else {
+                    *spelling
+                };
                 (
                     self.identity(spelling),
-                    FixtureRustEmittedIdentifier::try_new(*spelling)
+                    FixtureRustEmittedIdentifier::try_new(rust_spelling)
                         .expect("fixture spelling is a Rust identifier"),
                 )
             },
@@ -278,6 +303,71 @@ fn untouched_nexus_ethos_generates_plain_traits_and_decisions_that_compile_and_r
         .env("CARGO_TARGET_DIR", temporary.path().join("target"))
         .output()
         .expect("run scratch Cargo crate");
+    assert!(
+        run.status.success(),
+        "scratch Cargo stderr:\n{}\ngenerated:\n{emitted}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+}
+
+#[test]
+fn interface_shared_types_carry_wire_attributes_through_canonical_logos_to_rust() {
+    let bindings = FixtureBindings::new();
+    let ethos = EthosCodec::build(grammar_ids(), bindings.priors())
+        .expect("composite Ethos codec")
+        .decode(INTERFACE_TYPE_SOURCE, &bindings)
+        .expect("current Interface type syntax decodes");
+    let logos = NexusTransformation::new()
+        .lower_interface_types(ethos.ethos())
+        .expect("lower Interface shared types only");
+    assert_eq!(logos.items().len(), 3);
+    for item in logos.items() {
+        let attributes = match item {
+            WholeLogosItem::Newtype(item) => item.attributes(),
+            WholeLogosItem::Struct(item) => item.attributes(),
+            WholeLogosItem::Enumeration(item) => item.attributes(),
+            WholeLogosItem::TraitDef(_) | WholeLogosItem::TraitImpl(_) => {
+                panic!("Interface shared types contain declarations only")
+            }
+        };
+        assert_eq!(attributes, WholeLogosTypeAttributes::Wire);
+    }
+    let archived = logos.to_archive_bytes().expect("archive Interface Logos");
+    let restored = WholeLogos::from_archive_bytes(&archived).expect("restore Interface Logos");
+    assert_eq!(restored, logos);
+
+    let emitted = rust_logos()
+        .emit_fixture(&restored, &bindings.rust_projections())
+        .expect("project wire-attributed Logos to Rust");
+    assert_eq!(emitted.matches("#[rustfmt::skip]").count(), 3, "{emitted}");
+    assert_eq!(emitted.matches("rkyv::Archive").count(), 3, "{emitted}");
+    assert_eq!(
+        emitted.matches("nota::NotaDecodeTraced").count(),
+        3,
+        "{emitted}"
+    );
+    assert!(emitted.contains("Batch(Vec<Entry>)"), "{emitted}");
+
+    let temporary = tempfile::tempdir().expect("scratch crate directory");
+    fs::create_dir(temporary.path().join("src")).expect("scratch source directory");
+    fs::write(
+        temporary.path().join("Cargo.toml"),
+        "[package]\nname = \"interface-wire-slice\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n[features]\nnota-text = []\n\n[dependencies]\nrkyv = { version = \"0.8\", default-features = false, features = [\"std\", \"bytecheck\", \"little_endian\", \"pointer_width_32\", \"unaligned\"] }\n",
+    )
+    .expect("scratch manifest with the wire archive contract");
+    fs::write(
+        temporary.path().join("src/main.rs"),
+        format!(
+            "#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Entry;\n{emitted}\nfn main() {{ let value = WireChoice::Batch(vec![Entry]); let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&value).unwrap(); let restored = rkyv::from_bytes::<WireChoice, rkyv::rancor::Error>(&bytes).unwrap(); assert_eq!(restored, value); }}\n"
+        ),
+    )
+    .expect("scratch generated wire source");
+    let run = Command::new("cargo")
+        .args(["run", "--quiet", "--jobs", "2"])
+        .current_dir(temporary.path())
+        .env("CARGO_TARGET_DIR", temporary.path().join("target"))
+        .output()
+        .expect("run scratch Interface wire crate");
     assert!(
         run.status.success(),
         "scratch Cargo stderr:\n{}\ngenerated:\n{emitted}",

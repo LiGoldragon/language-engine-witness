@@ -214,8 +214,8 @@ dependencies = [
 
 [[package]]
 name = "core-logos"
-version = "0.21.0"
-source = "git+https://github.com/LiGoldragon/core-logos.git?rev=23ca4b0d80cd3b9505954bdccce5a525bcd6b28a#23ca4b0d80cd3b9505954bdccce5a525bcd6b28a"
+version = "0.22.0"
+source = "git+https://github.com/LiGoldragon/core-logos.git?rev=bd5155f51ee5301b78cd8b3c070a98e2267e7477#bd5155f51ee5301b78cd8b3c070a98e2267e7477"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.4.0",
@@ -251,15 +251,15 @@ dependencies = [
 
 [[package]]
 name = "core-nomos"
-version = "0.32.0"
-source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=15a67491ef41503d610ccdb745057755117055f3#15a67491ef41503d610ccdb745057755117055f3"
+version = "0.33.0"
+source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=e5dfc0577f7b5f69b9b1b55ecca410f5f771b8fd#e5dfc0577f7b5f69b9b1b55ecca410f5f771b8fd"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.5.0",
  "core-ethos 0.23.0",
  "core-ethos 0.25.0",
  "core-logos 0.20.0",
- "core-logos 0.21.0",
+ "core-logos 0.22.0",
  "name-table 0.1.0",
  "name-table 0.3.0",
  "protos 0.4.0",
@@ -372,21 +372,21 @@ dependencies = [
 
 [[package]]
 name = "language-engine-witness"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "core-ethos 0.20.0",
  "core-ethos 0.25.0",
  "core-logos 0.19.0",
- "core-logos 0.21.0",
+ "core-logos 0.22.0",
  "core-nomos 0.27.0",
- "core-nomos 0.32.0",
+ "core-nomos 0.33.0",
  "name-table 0.3.0",
  "nomos-engine",
  "protos 0.4.0",
  "raw-discovery",
  "rkyv",
  "rust-logos 0.19.0",
- "rust-logos 0.21.0",
+ "rust-logos 0.22.0",
  "sema-translator",
  "signal-frame 0.4.0",
  "signal-nomos",
@@ -677,11 +677,11 @@ dependencies = [
 
 [[package]]
 name = "rust-logos"
-version = "0.21.0"
-source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=788707c42f3833a99d1dbf3cfd9c156cdb7e5e23#788707c42f3833a99d1dbf3cfd9c156cdb7e5e23"
+version = "0.22.0"
+source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=14491e0cc2e34799b771573f1eeeaaf44a616405#14491e0cc2e34799b771573f1eeeaaf44a616405"
 dependencies = [
  "bs58",
- "core-logos 0.21.0",
+ "core-logos 0.22.0",
  "name-table 0.1.0",
  "name-table 0.3.0",
  "prettyplease",

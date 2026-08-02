@@ -1,6 +1,6 @@
 [package]
 name="language-engine-witness"
-version="0.16.0"
+version="0.17.0"
 edition="2024"
 rust-version="1.89"
 license="MIT OR Apache-2.0"
@@ -13,9 +13,9 @@ rkyv={version="0.8",features=["bytecheck"]}
 [dev-dependencies]
 tempfile="3"
 nexus-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="83feebbd34b66d493a0a3c7ffea68dab1dd7873c"}
-nexus-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="23ca4b0d80cd3b9505954bdccce5a525bcd6b28a"}
-nexus-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="15a67491ef41503d610ccdb745057755117055f3"}
-nexus-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="788707c42f3833a99d1dbf3cfd9c156cdb7e5e23"}
+nexus-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="bd5155f51ee5301b78cd8b3c070a98e2267e7477"}
+nexus-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="e5dfc0577f7b5f69b9b1b55ecca410f5f771b8fd"}
+nexus-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="14491e0cc2e34799b771573f1eeeaaf44a616405"}
 slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="736460fdafbd65d6500fe15e6ae8844b42a39e7c"}
 slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="9a61e2ac1bf8a8c1163794d695902115a05a4007"}
 slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="58fd8036bffcb3cff6e27af4db25690764ecc768"}
