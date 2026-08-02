@@ -1,0 +1,14 @@
+Nexus.1
+[interface.{Entry Referent RecordSet GuardianReason}]
+{
+  [
+    AdmissionDecision.[Accepted Rejected.GuardianReason]
+    GuardianDecision.[Admit Refuse.GuardianReason]
+  ]
+  [
+    SignalAdmission.{admit.{Entry AdmissionDecision}
+                     recordDecision.{AdmissionDecision Unit}}
+    AgentGuardian.{guard.{Entry RecordSet GuardianDecision}
+                   guardReferent.{Referent RecordSet GuardianDecision}}
+  ]
+}
