@@ -9,7 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nomos-engine = {
-      url = "github:LiGoldragon/nomos-engine/e4230f62b55fcf8543477a26d272862a63aa1fc3";
+      url = "github:LiGoldragon/nomos-engine/f95b38c6805a031fbf7adad78234349d784d9845";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
       inputs.rust-build.follows = "rust-build";
@@ -41,6 +41,7 @@
             sema-translator.packages.${system}.default
           ];
           NOMOS_ENGINE_BIN = "${nomos-engine.packages.${system}.default}/bin/nomos-engine";
+          NOMOS_GENERATOR_BIN = "${nomos-engine.packages.${system}.default}/bin/nomos-generate";
           SEMA_TRANSLATOR_BIN = "${sema-translator.packages.${system}.default}/bin/sema-translator-daemon";
         };
       in
@@ -61,6 +62,20 @@
           spirit-domain-inventory = pkgs.runCommand "spirit-domain-inventory" {} ''
             cmp ${signal-domain-source}/schema/domain.schema ${./tests/fixtures/spirit-domain.ethos}
             touch $out
+          '';
+          offline-generator = pkgs.runCommand "offline-generator" {
+            nativeBuildInputs = [ nomos-engine.packages.${system}.default ];
+          } ''
+            mkdir -p $out
+            nomos-generate ${./tests/fixtures/batch-config.json} ${./tests/fixtures/interface.ethos} $out/interface.rs $out/interface.outcome
+            nomos-generate ${./tests/fixtures/batch-config.json} ${./tests/fixtures/nexus.ethos} $out/nexus.rs $out/nexus.outcome
+            nomos-generate ${./tests/fixtures/batch-config.json} ${./tests/fixtures/sema.ethos} $out/sema.rs $out/sema.outcome
+            test -s $out/interface.rs
+            test -s $out/nexus.rs
+            test -s $out/sema.rs
+            grep -q '^deferred 10$' $out/interface.outcome
+            grep -q '^deferred 0$' $out/nexus.outcome
+            grep -q '^deferred 3$' $out/sema.outcome
           '';
         };
         devShells.default = pkgs.mkShell {

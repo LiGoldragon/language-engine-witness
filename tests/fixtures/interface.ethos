@@ -1,0 +1,32 @@
+Interface.1
+[]
+{
+  [Record.Entry Observe.Query Register.ReferentRegistration]
+  [Recorded.RecordIdentifier Observed.RecordSet Registered.ReferentIdentifier]
+  [GuardianRejection.{GuardianReason Explanation} ReferentRejection.{GuardianReason Explanation}]
+  [
+    Topic.Text
+    Topics.Vector.Topic
+    Description.Text
+    Explanation.Text
+    Kind.[Decision Principle Correction Clarification Constraint]
+    Magnitude.[Minimum VeryLow Low Medium High VeryHigh Maximum]
+    Entry.{Topics Kind Description Magnitude}
+    Query.{Topic Kind}
+    RecordIdentifier.Integer
+    RecordSet.Vector.Entry
+    Referent.Text
+    Aliases.Vector.Text
+    ReferentRegistration.{Referent Aliases}
+    ReferentIdentifier.Integer
+    GuardianReason.[NotSpirit PrivateContent MeaningUnclear Duplicate]
+    ObserverFilter.{Topics}
+    ObserverSubscription.{SubscriptionToken}
+    ObservationEvent.{Topic RecordIdentifier}
+    Stream.Observer.{ObserverFilter ObserverSubscription ObservationEvent}
+    IntentFilter.{Query}
+    IntentSubscription.{SubscriptionToken}
+    IntentEvent.{Entry}
+    Stream.Intent.{IntentFilter IntentSubscription IntentEvent}
+  ]
+}

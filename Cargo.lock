@@ -251,8 +251,28 @@ dependencies = [
 
 [[package]]
 name = "core-nomos"
-version = "0.33.0"
-source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=e5dfc0577f7b5f69b9b1b55ecca410f5f771b8fd#e5dfc0577f7b5f69b9b1b55ecca410f5f771b8fd"
+version = "0.30.0"
+source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=6470efc171a2acb652fba7d512f76c26f7a53d82#6470efc171a2acb652fba7d512f76c26f7a53d82"
+dependencies = [
+ "content-identity 0.3.0",
+ "content-identity 0.5.0",
+ "core-ethos 0.23.0",
+ "core-logos 0.20.0",
+ "name-table 0.1.0",
+ "name-table 0.3.0",
+ "protos 0.4.0",
+ "raw-discovery",
+ "rkyv",
+ "rust-logos 0.20.0",
+ "signal-sema-translator",
+ "structural-codec",
+ "thiserror",
+]
+
+[[package]]
+name = "core-nomos"
+version = "0.34.0"
+source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=f1f6ca55fbc69afec135b385ed758725f4c2696a#f1f6ca55fbc69afec135b385ed758725f4c2696a"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.5.0",
@@ -360,6 +380,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "itoa"
+version = "1.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+
+[[package]]
 name = "js-sys"
 version = "0.3.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -372,16 +398,17 @@ dependencies = [
 
 [[package]]
 name = "language-engine-witness"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "core-ethos 0.20.0",
  "core-ethos 0.25.0",
  "core-logos 0.19.0",
  "core-logos 0.22.0",
  "core-nomos 0.27.0",
- "core-nomos 0.33.0",
+ "core-nomos 0.34.0",
  "name-table 0.3.0",
- "nomos-engine",
+ "nomos-engine 0.4.0",
+ "nomos-engine 0.7.0",
  "protos 0.4.0",
  "raw-discovery",
  "rkyv",
@@ -389,7 +416,7 @@ dependencies = [
  "rust-logos 0.22.0",
  "sema-translator",
  "signal-frame 0.4.0",
- "signal-nomos",
+ "signal-nomos 0.4.0",
  "signal-sema-translator",
  "structural-codec",
  "tempfile",
@@ -406,6 +433,12 @@ name = "linux-raw-sys"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
+
+[[package]]
+name = "memchr"
+version = "2.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
 name = "mio"
@@ -470,8 +503,34 @@ dependencies = [
  "protos 0.4.0",
  "rkyv",
  "sema-engine 0.11.2 (git+https://github.com/LiGoldragon/sema-engine.git?rev=7bed5017a6f20ff2c109f693c2dedaaddf52e64d)",
- "signal-nomos",
+ "signal-nomos 0.4.0",
  "signal-sema-translator",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "nomos-engine"
+version = "0.7.0"
+source = "git+https://github.com/LiGoldragon/nomos-engine.git?rev=f95b38c6805a031fbf7adad78234349d784d9845#f95b38c6805a031fbf7adad78234349d784d9845"
+dependencies = [
+ "content-identity 0.5.0",
+ "core-ethos 0.23.0",
+ "core-ethos 0.25.0",
+ "core-logos 0.20.0",
+ "core-logos 0.22.0",
+ "core-nomos 0.30.0",
+ "core-nomos 0.34.0",
+ "name-table 0.3.0",
+ "protos 0.4.0",
+ "rkyv",
+ "rust-logos 0.22.0",
+ "sema-engine 0.11.2 (git+https://github.com/LiGoldragon/sema-engine.git?rev=7bed5017a6f20ff2c109f693c2dedaaddf52e64d)",
+ "serde",
+ "serde_json",
+ "signal-nomos 0.6.0",
+ "signal-sema-translator",
+ "structural-codec",
  "thiserror",
  "tokio",
 ]
@@ -766,6 +825,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
+dependencies = [
+ "serde_core",
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_core"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.3",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.151"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
+dependencies = [
+ "itoa",
+ "memchr",
+ "serde",
+ "serde_core",
+ "zmij",
+]
+
+[[package]]
 name = "shlex"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -820,6 +922,17 @@ source = "git+https://github.com/LiGoldragon/signal-nomos.git?rev=1af71a9d0625a6
 dependencies = [
  "content-identity 0.5.0",
  "core-nomos 0.27.0",
+ "rkyv",
+ "thiserror",
+]
+
+[[package]]
+name = "signal-nomos"
+version = "0.6.0"
+source = "git+https://github.com/LiGoldragon/signal-nomos.git?rev=d5b102c339612e68e357a34792b016af3af5254f#d5b102c339612e68e357a34792b016af3af5254f"
+dependencies = [
+ "content-identity 0.5.0",
+ "core-nomos 0.30.0",
  "rkyv",
  "thiserror",
 ]
@@ -1057,3 +1170,9 @@ checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
 dependencies = [
  "windows-link",
 ]
+
+[[package]]
+name = "zmij"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
