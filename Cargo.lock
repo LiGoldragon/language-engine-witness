@@ -398,7 +398,7 @@ dependencies = [
 
 [[package]]
 name = "language-engine-witness"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "core-ethos 0.20.0",
  "core-ethos 0.25.0",
@@ -408,7 +408,7 @@ dependencies = [
  "core-nomos 0.35.0",
  "name-table 0.3.0",
  "nomos-engine 0.4.0",
- "nomos-engine 0.8.0",
+ "nomos-engine 0.9.0",
  "protos 0.4.0",
  "protos 0.5.0",
  "raw-discovery",
@@ -512,8 +512,8 @@ dependencies = [
 
 [[package]]
 name = "nomos-engine"
-version = "0.8.0"
-source = "git+https://github.com/LiGoldragon/nomos-engine.git?rev=8850ee1c0154bae39941946f266361a58e894f98#8850ee1c0154bae39941946f266361a58e894f98"
+version = "0.9.0"
+source = "git+https://github.com/LiGoldragon/nomos-engine.git?rev=9e2970ccdf2a78e233339bf8f16d137b69b39096#9e2970ccdf2a78e233339bf8f16d137b69b39096"
 dependencies = [
  "content-identity 0.5.0",
  "core-ethos 0.23.0",

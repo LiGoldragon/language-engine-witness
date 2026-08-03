@@ -120,17 +120,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1785715809,
-        "narHash": "sha256-2zs3eh9Kt9cxw1lnKbXVS9oHOlCGUP/GYxHPAIsHHco=",
+        "lastModified": 1785717025,
+        "narHash": "sha256-Qep+apajMuGCjiRTFQvSrMiD5dsdC3poPOU6bnYv0AU=",
         "owner": "LiGoldragon",
         "repo": "nomos-engine",
-        "rev": "8850ee1c0154bae39941946f266361a58e894f98",
+        "rev": "9e2970ccdf2a78e233339bf8f16d137b69b39096",
         "type": "github"
       },
       "original": {
         "owner": "LiGoldragon",
         "repo": "nomos-engine",
-        "rev": "8850ee1c0154bae39941946f266361a58e894f98",
+        "rev": "9e2970ccdf2a78e233339bf8f16d137b69b39096",
         "type": "github"
       }
     },
