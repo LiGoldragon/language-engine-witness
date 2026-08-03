@@ -8,7 +8,10 @@ use batch_nomos_engine::batch::{
     BatchConfiguration, BatchGenerationError, DeferredBatchConstruct, OfflineBatchConfiguration,
     OfflineBatchGeneration, PreparedBatchGenerator,
 };
-use language_engine_witness::{BUILD_SCRIPT_NEXUS_OUTCOME, BUILD_SCRIPT_NEXUS_RUST};
+use language_engine_witness::{
+    BUILD_SCRIPT_INTERFACE_OUTCOME, BUILD_SCRIPT_INTERFACE_RUST, BUILD_SCRIPT_NEXUS_OUTCOME,
+    BUILD_SCRIPT_NEXUS_RUST, exercise_build_script_interface,
+};
 use nexus_core_ethos::{EthosDecodeError, WholeEthosFileKind};
 use nexus_rust_logos::RustEncodedIdCodec;
 use slice_name_table::LocalEncodedId;
@@ -46,40 +49,7 @@ fn library_projects_all_goldens_and_reports_exactly_deferred_semantics() {
         .generate(INTERFACE)
         .expect("supported Interface declarations generate");
     assert_eq!(interface.kind(), WholeEthosFileKind::Interface);
-    assert_eq!(interface.deferred().len(), 10);
-    assert_eq!(
-        interface
-            .deferred()
-            .iter()
-            .filter(|item| matches!(
-                item,
-                DeferredBatchConstruct::InterfaceInputMembership { .. }
-            ))
-            .count(),
-        3
-    );
-    assert_eq!(
-        interface
-            .deferred()
-            .iter()
-            .filter(|item| matches!(
-                item,
-                DeferredBatchConstruct::InterfaceOutputMembership { .. }
-            ))
-            .count(),
-        3
-    );
-    assert_eq!(
-        interface
-            .deferred()
-            .iter()
-            .filter(|item| matches!(
-                item,
-                DeferredBatchConstruct::InterfaceRefusalSemantics { .. }
-            ))
-            .count(),
-        2
-    );
+    assert_eq!(interface.deferred().len(), 2);
     assert_eq!(
         interface
             .deferred()
@@ -91,7 +61,24 @@ fn library_projects_all_goldens_and_reports_exactly_deferred_semantics() {
             .count(),
         2
     );
+    assert_eq!(interface.rust(), BUILD_SCRIPT_INTERFACE_RUST);
+    assert!(BUILD_SCRIPT_INTERFACE_OUTCOME.contains("deferred 2"));
     assert!(interface.rust().contains("#[derive(rkyv::Archive"));
+    assert_eq!(interface.rust().matches("impl z2VL5p for").count(), 3);
+    assert_eq!(interface.rust().matches("impl z2VL5q for").count(), 3);
+    assert_eq!(interface.rust().matches("impl z2VL5r for").count(), 2);
+    assert_eq!(
+        interface
+            .rust()
+            .matches("impl std::error::Error for")
+            .count(),
+        2
+    );
+    assert!(!interface.rust().contains("impl From<"));
+    let behavior = exercise_build_script_interface();
+    assert_eq!(behavior.membership_assertions, 8);
+    assert!(behavior.archive_round_trip);
+    assert!(behavior.refusal_display_matches_debug);
 
     let sema = generator
         .generate(SEMA)
@@ -153,6 +140,10 @@ fn installed_cli_generates_all_goldens_and_nexus_output_compiles() {
     compile_nexus_artifact(
         &temporary.path().join("nexus.rs"),
         temporary.path().join("scratch-crate").as_path(),
+    );
+    assert_eq!(
+        fs::read_to_string(temporary.path().join("interface.rs")).expect("CLI Interface artifact"),
+        BUILD_SCRIPT_INTERFACE_RUST
     );
 
     let bad_source = temporary.path().join("unknown.ethos");

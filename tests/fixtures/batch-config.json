@@ -42,6 +42,11 @@
     "application_heads": ["Vector"],
     "object_application_heads": ["Stream"]
   },
+  "interface_roles": {
+    "input": "Input",
+    "output": "Output",
+    "refusal": "Refusal"
+  },
   "names": [
     { "spelling": "Record", "root": "universal", "chain": [1000] },
     { "spelling": "Entry", "root": "universal", "chain": [1001] },
@@ -117,6 +122,9 @@
     { "spelling": "records", "root": "universal", "chain": [1071] },
     { "spelling": "Domain", "root": "universal", "chain": [1072] },
     { "spelling": "referents", "root": "universal", "chain": [1073] },
-    { "spelling": "migrations", "root": "universal", "chain": [1074] }
+    { "spelling": "migrations", "root": "universal", "chain": [1074] },
+    { "spelling": "Input", "root": "universal", "chain": [1075] },
+    { "spelling": "Output", "root": "universal", "chain": [1076] },
+    { "spelling": "Refusal", "root": "universal", "chain": [1077] }
   ]
 }

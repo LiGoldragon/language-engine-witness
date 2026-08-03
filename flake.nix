@@ -9,7 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nomos-engine = {
-      url = "github:LiGoldragon/nomos-engine/f95b38c6805a031fbf7adad78234349d784d9845";
+      url = "github:LiGoldragon/nomos-engine/8850ee1c0154bae39941946f266361a58e894f98";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
       inputs.rust-build.follows = "rust-build";
@@ -73,7 +73,7 @@
             test -s $out/interface.rs
             test -s $out/nexus.rs
             test -s $out/sema.rs
-            grep -q '^deferred 10$' $out/interface.outcome
+            grep -q '^deferred 2$' $out/interface.outcome
             grep -q '^deferred 0$' $out/nexus.outcome
             grep -q '^deferred 3$' $out/sema.outcome
           '';

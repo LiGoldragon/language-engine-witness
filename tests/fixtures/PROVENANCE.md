@@ -14,8 +14,9 @@ WholeLogos to Rust, and compiles and runs that output in an isolated scratch
 crate.
 
 `interface.ethos` and `sema.ethos` are the other two unchanged psyche-reviewed
-Spirit fixtures. The Slice 3 witness sends all three through the socket-free
-Nomos batch API and installed CLI using the explicit translator-issued identity
-view in `batch-config.json`. Interface membership, refusal behavior, Stream
-applications, and Sema tables remain visible in typed deferred receipts rather
-than being claimed as implemented semantics.
+Spirit fixtures. The socket-free Nomos batch API and installed CLI consume the
+explicit translator-issued identity view in `batch-config.json`. Interface
+Input, Output, and Refusal positions now generate universal memberships, with
+Refusal also generating `Display` and `Error`; the emitted Interface is compiled
+and exercised in this crate. Only its two Stream applications remain typed
+deferrals. Sema tables remain typed deferrals.
