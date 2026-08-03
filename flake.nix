@@ -9,7 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nomos-engine = {
-      url = "github:LiGoldragon/nomos-engine/9e2970ccdf2a78e233339bf8f16d137b69b39096";
+      url = "github:LiGoldragon/nomos-engine/d2914a008e91e689cfe6f4e37b1b69109be1f5f2";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
       inputs.rust-build.follows = "rust-build";
@@ -75,7 +75,8 @@
             test -s $out/sema.rs
             grep -q '^deferred 2$' $out/interface.outcome
             grep -q '^deferred 0$' $out/nexus.outcome
-            grep -q '^deferred 3$' $out/sema.outcome
+            grep -q '^deferred 0$' $out/sema.outcome
+            test "$(grep -c 'impl sema_engine::TableSpecification for' $out/sema.rs)" -eq 3
           '';
         };
         devShells.default = pkgs.mkShell {

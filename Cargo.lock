@@ -230,6 +230,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-logos"
+version = "0.23.0"
+source = "git+https://github.com/LiGoldragon/core-logos.git?rev=0881344036fc987d95d0430b0fd152ee7c153b0e#0881344036fc987d95d0430b0fd152ee7c153b0e"
+dependencies = [
+ "content-identity 0.3.0",
+ "content-identity 0.4.0",
+ "name-table 0.1.0",
+ "name-table 0.3.0",
+ "protos 0.3.0",
+ "raw-discovery",
+ "rkyv",
+ "signal-sema-translator",
+ "structural-codec",
+ "thiserror",
+]
+
+[[package]]
 name = "core-nomos"
 version = "0.27.0"
 source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=58fd8036bffcb3cff6e27af4db25690764ecc768#58fd8036bffcb3cff6e27af4db25690764ecc768"
@@ -280,6 +297,28 @@ dependencies = [
  "core-ethos 0.25.0",
  "core-logos 0.20.0",
  "core-logos 0.22.0",
+ "name-table 0.1.0",
+ "name-table 0.3.0",
+ "protos 0.4.0",
+ "raw-discovery",
+ "rkyv",
+ "rust-logos 0.20.0",
+ "signal-sema-translator",
+ "structural-codec",
+ "thiserror",
+]
+
+[[package]]
+name = "core-nomos"
+version = "0.36.0"
+source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=9b81bda53c1614bac5d752f31dfea3ee6cdf046c#9b81bda53c1614bac5d752f31dfea3ee6cdf046c"
+dependencies = [
+ "content-identity 0.3.0",
+ "content-identity 0.5.0",
+ "core-ethos 0.23.0",
+ "core-ethos 0.25.0",
+ "core-logos 0.20.0",
+ "core-logos 0.23.0",
  "name-table 0.1.0",
  "name-table 0.3.0",
  "protos 0.4.0",
@@ -398,7 +437,7 @@ dependencies = [
 
 [[package]]
 name = "language-engine-witness"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "core-ethos 0.20.0",
  "core-ethos 0.25.0",
@@ -407,14 +446,15 @@ dependencies = [
  "core-nomos 0.27.0",
  "core-nomos 0.35.0",
  "name-table 0.3.0",
+ "nomos-engine 0.11.0",
  "nomos-engine 0.4.0",
- "nomos-engine 0.9.0",
  "protos 0.4.0",
  "protos 0.5.0",
  "raw-discovery",
  "rkyv",
  "rust-logos 0.19.0",
  "rust-logos 0.23.0",
+ "sema-engine 0.12.0",
  "sema-translator",
  "signal-frame 0.4.0",
  "signal-nomos 0.4.0",
@@ -512,21 +552,21 @@ dependencies = [
 
 [[package]]
 name = "nomos-engine"
-version = "0.9.0"
-source = "git+https://github.com/LiGoldragon/nomos-engine.git?rev=9e2970ccdf2a78e233339bf8f16d137b69b39096#9e2970ccdf2a78e233339bf8f16d137b69b39096"
+version = "0.11.0"
+source = "git+https://github.com/LiGoldragon/nomos-engine.git?rev=d2914a008e91e689cfe6f4e37b1b69109be1f5f2#d2914a008e91e689cfe6f4e37b1b69109be1f5f2"
 dependencies = [
  "content-identity 0.5.0",
  "core-ethos 0.23.0",
  "core-ethos 0.25.0",
  "core-logos 0.20.0",
- "core-logos 0.22.0",
+ "core-logos 0.23.0",
  "core-nomos 0.30.0",
- "core-nomos 0.35.0",
+ "core-nomos 0.36.0",
  "name-table 0.3.0",
  "protos 0.4.0",
  "rkyv",
- "rust-logos 0.23.0",
- "sema-engine 0.11.2 (git+https://github.com/LiGoldragon/sema-engine.git?rev=7bed5017a6f20ff2c109f693c2dedaaddf52e64d)",
+ "rust-logos 0.25.0",
+ "sema-engine 0.12.0",
  "serde",
  "serde_json",
  "signal-nomos 0.6.0",
@@ -766,6 +806,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-logos"
+version = "0.25.0"
+source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=ef216129d75f30147619195312d3de4d01e42dce#ef216129d75f30147619195312d3de4d01e42dce"
+dependencies = [
+ "bs58",
+ "core-logos 0.23.0",
+ "name-table 0.1.0",
+ "name-table 0.3.0",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "raw-discovery",
+ "rkyv",
+ "signal-sema-translator",
+ "structural-codec",
+ "syn 2.0.119",
+ "thiserror",
+]
+
+[[package]]
 name = "rustix"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -811,6 +871,19 @@ dependencies = [
 name = "sema-engine"
 version = "0.11.2"
 source = "git+https://github.com/LiGoldragon/sema-engine.git?rev=94d2f7ee7b81d0bf3b6f1a111f6bbbc398c0e7a3#94d2f7ee7b81d0bf3b6f1a111f6bbbc398c0e7a3"
+dependencies = [
+ "blake3",
+ "rkyv",
+ "sema",
+ "signal-frame 0.3.0",
+ "signal-sema",
+ "thiserror",
+]
+
+[[package]]
+name = "sema-engine"
+version = "0.12.0"
+source = "git+https://github.com/LiGoldragon/sema-engine.git?rev=e28c8e6503cf3592f21da9f44371a1b2a6448151#e28c8e6503cf3592f21da9f44371a1b2a6448151"
 dependencies = [
  "blake3",
  "rkyv",

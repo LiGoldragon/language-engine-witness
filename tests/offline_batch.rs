@@ -10,7 +10,8 @@ use batch_nomos_engine::batch::{
 };
 use language_engine_witness::{
     BUILD_SCRIPT_INTERFACE_OUTCOME, BUILD_SCRIPT_INTERFACE_RUST, BUILD_SCRIPT_NEXUS_OUTCOME,
-    BUILD_SCRIPT_NEXUS_RUST, exercise_build_script_interface,
+    BUILD_SCRIPT_NEXUS_RUST, BUILD_SCRIPT_SEMA_OUTCOME, BUILD_SCRIPT_SEMA_RUST,
+    exercise_build_script_interface, exercise_build_script_sema,
 };
 use nexus_core_ethos::{EthosDecodeError, WholeEthosFileKind};
 use nexus_rust_logos::RustEncodedIdCodec;
@@ -84,13 +85,35 @@ fn library_projects_all_goldens_and_reports_exactly_deferred_semantics() {
         .generate(SEMA)
         .expect("supported Sema record declarations generate");
     assert_eq!(sema.kind(), WholeEthosFileKind::Sema);
-    assert_eq!(sema.logos().items().len(), 6);
-    assert_eq!(sema.deferred().len(), 3);
-    assert!(
-        sema.deferred()
-            .iter()
-            .all(|item| matches!(item, DeferredBatchConstruct::SemaTable { .. }))
+    assert_eq!(sema.logos().items().len(), 9);
+    assert!(sema.deferred().is_empty());
+    assert_eq!(sema.rust(), BUILD_SCRIPT_SEMA_RUST);
+    assert!(BUILD_SCRIPT_SEMA_OUTCOME.contains("deferred 0"));
+    assert_eq!(
+        sema.rust()
+            .matches("impl sema_engine::TableSpecification for")
+            .count(),
+        3
     );
+    assert_eq!(sema.rust().matches("type Record =").count(), 3);
+    assert_eq!(sema.rust().matches("type Key =").count(), 3);
+
+    let migration = RustEncodedIdCodec::encode(&universal(1070));
+    let migrations = RustEncodedIdCodec::encode(&universal(1074));
+    assert!(sema.rust().contains(&format!("pub struct {migration}")));
+    assert!(sema.rust().contains(&format!("pub struct {migrations};")));
+    assert!(!sema.rust().contains("EvolutionStep"));
+    assert!(!sema.rust().contains("with_prior("));
+
+    let temporary = tempfile::tempdir().expect("fresh generated Sema store");
+    let behavior = exercise_build_script_sema(temporary.path().join("generated.sema"))
+        .expect("generated Sema tables execute through sema-engine");
+    assert_eq!(behavior.registered_tables, 3);
+    assert_eq!(
+        behavior.records_table,
+        RustEncodedIdCodec::encode(&universal(1071))
+    );
+    assert!(behavior.durable_round_trip);
 }
 
 #[test]
@@ -144,6 +167,15 @@ fn installed_cli_generates_all_goldens_and_nexus_output_compiles() {
     assert_eq!(
         fs::read_to_string(temporary.path().join("interface.rs")).expect("CLI Interface artifact"),
         BUILD_SCRIPT_INTERFACE_RUST
+    );
+    assert_eq!(
+        fs::read_to_string(temporary.path().join("sema.rs")).expect("CLI Sema artifact"),
+        BUILD_SCRIPT_SEMA_RUST
+    );
+    assert!(
+        fs::read_to_string(temporary.path().join("sema.outcome"))
+            .expect("CLI Sema receipt")
+            .contains("deferred 0")
     );
 
     let bad_source = temporary.path().join("unknown.ethos");

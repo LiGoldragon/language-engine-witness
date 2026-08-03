@@ -13,6 +13,7 @@ fn main() -> Result<(), AnyError> {
     println!("cargo:rerun-if-changed=tests/fixtures/batch-config.json");
     println!("cargo:rerun-if-changed=tests/fixtures/nexus.ethos");
     println!("cargo:rerun-if-changed=tests/fixtures/interface.ethos");
+    println!("cargo:rerun-if-changed=tests/fixtures/sema.ethos");
 
     let manifest = PathBuf::from(
         env::var_os("CARGO_MANIFEST_DIR")
@@ -54,5 +55,14 @@ fn main() -> Result<(), AnyError> {
         output.join("build-script-interface.outcome"),
         interface.report(),
     )?;
+
+    let sema = generator.generate(&fs::read_to_string(
+        manifest.join("tests/fixtures/sema.ethos"),
+    )?)?;
+    if !sema.deferred().is_empty() {
+        return Err("Sema build-script generation unexpectedly deferred constructs".into());
+    }
+    fs::write(output.join("build-script-sema.rs"), sema.rust())?;
+    fs::write(output.join("build-script-sema.outcome"), sema.report())?;
     Ok(())
 }

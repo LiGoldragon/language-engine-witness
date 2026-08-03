@@ -16,6 +16,14 @@ pub const BUILD_SCRIPT_INTERFACE_RUST: &str =
 pub const BUILD_SCRIPT_INTERFACE_OUTCOME: &str =
     include_str!(concat!(env!("OUT_DIR"), "/build-script-interface.outcome"));
 
+/// Sema Rust emitted by the same socket-free build-script generator.
+pub const BUILD_SCRIPT_SEMA_RUST: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/build-script-sema.rs"));
+
+/// Typed-success receipt for build-script Sema generation.
+pub const BUILD_SCRIPT_SEMA_OUTCOME: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/build-script-sema.outcome"));
+
 /// Observable results from exercising the exact generated Interface module.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InterfaceBuildWitness {
@@ -30,6 +38,24 @@ pub struct InterfaceBuildWitness {
 /// Exercise the exact Interface artifact included from the build-script output.
 pub fn exercise_build_script_interface() -> InterfaceBuildWitness {
     generated_interface::exercise()
+}
+
+/// Observable results from exercising the exact generated Sema module.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SemaBuildWitness {
+    /// Number of generated table specifications registered in the fresh store.
+    pub registered_tables: usize,
+    /// Current redb coordinate emitted for the fixture's `records` table.
+    pub records_table: &'static str,
+    /// Whether the generated record survived write/read and reopen/read.
+    pub durable_round_trip: bool,
+}
+
+/// Exercise the exact Sema artifact included from build-script output.
+pub fn exercise_build_script_sema(
+    path: impl AsRef<std::path::Path>,
+) -> Result<SemaBuildWitness, sema_engine::Error> {
+    generated_sema::exercise(path.as_ref())
 }
 
 #[allow(dead_code, non_camel_case_types)]
@@ -76,5 +102,54 @@ mod generated_interface {
             archive_round_trip: restored == output,
             refusal_display_matches_debug,
         }
+    }
+}
+
+#[allow(dead_code, non_camel_case_types)]
+mod generated_sema {
+    use sema_engine::{Engine, EngineOpen, SchemaVersion, TableSpecification};
+
+    type z2VL4e = u64;
+    type z2VL4Y = String;
+    type z2VL59 = u64;
+    type z2VL5A = Vec<String>;
+    type z2VL58 = u64;
+
+    #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, Eq, PartialEq)]
+    pub struct z2VL5m(String);
+
+    include!(concat!(env!("OUT_DIR"), "/build-script-sema.rs"));
+
+    pub(super) fn exercise(
+        path: &std::path::Path,
+    ) -> Result<super::SemaBuildWitness, sema_engine::Error> {
+        let mut engine = Engine::open(EngineOpen::new(path, SchemaVersion::new(1)))?;
+        engine.register_table(z2VL5k::descriptor())?;
+        engine.register_table(z2VL5n::descriptor())?;
+        engine.register_table(z2VL5o::descriptor())?;
+
+        let domain = z2VL5m("software/code-generation".to_owned());
+        let stored = z2VL5e {
+            field_0: 17,
+            field_1: "typed value".to_owned(),
+        };
+        engine.assert_keyed(z2VL5k::assertion(&domain, stored.clone())?)?;
+        let first_read = engine.match_records(z2VL5k::query(&domain)?)?;
+        let first_round_trip = first_read.records() == std::slice::from_ref(&stored);
+        drop(first_read);
+        drop(engine);
+
+        let mut reopened = Engine::open(EngineOpen::new(path, SchemaVersion::new(1)))?;
+        reopened.register_table(z2VL5k::descriptor())?;
+        reopened.register_table(z2VL5n::descriptor())?;
+        reopened.register_table(z2VL5o::descriptor())?;
+        let reopened_read = reopened.match_records(z2VL5k::query(&domain)?)?;
+
+        Ok(super::SemaBuildWitness {
+            registered_tables: 3,
+            records_table: z2VL5k::TABLE_NAME.as_str(),
+            durable_round_trip: first_round_trip
+                && reopened_read.records() == std::slice::from_ref(&stored),
+        })
     }
 }

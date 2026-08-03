@@ -19,4 +19,10 @@ explicit translator-issued identity view in `batch-config.json`. Interface
 Input, Output, and Refusal positions now generate universal memberships, with
 Refusal also generating `Display` and `Error`; the emitted Interface is compiled
 and exercised in this crate. Only its two Stream applications remain typed
-deferrals. Sema tables remain typed deferrals.
+deferrals. Sema's six stored record declarations and three local table
+specifications generate without deferral. The fixture's `Migration` record and
+`migrations` table are witnessed only as inert generic record/table structure:
+they do not authorize migration behavior, schema evolution, or old-store
+compatibility. The generated `records` specification is registered in a fresh
+real redb-backed Sema store and its `StoredRecord`, keyed by `Domain`, survives
+write/read and reopen/read equality.
