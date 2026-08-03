@@ -9,7 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nomos-engine = {
-      url = "github:LiGoldragon/nomos-engine/d2914a008e91e689cfe6f4e37b1b69109be1f5f2";
+      url = "github:LiGoldragon/nomos-engine/39f9187cbf1b870ef169ed88595240fd304a7cea";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
       inputs.rust-build.follows = "rust-build";

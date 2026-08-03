@@ -47,6 +47,65 @@
     "output": "Output",
     "refusal": "Refusal"
   },
+  "rust_types": [
+    {
+      "spelling": "Integer",
+      "path": ["u64"],
+      "storage_fingerprint": "def1b9df3b2afd52f35dcccfe29bd9d2367f903ecd3a8b226e316254af10902d"
+    },
+    {
+      "spelling": "Vector",
+      "path": ["Vec"],
+      "storage_fingerprint": "1c1daa8f7b8ac024ff74f309361d7b4e29988ff95b71d850d5c929536d195405"
+    },
+    {
+      "spelling": "Text",
+      "path": ["String"],
+      "storage_fingerprint": "c59c087db9ce6e5f2c9c0aa2352d487b5a547bba759227c948844d7d00813d65"
+    },
+    {
+      "spelling": "Entry",
+      "import_source": "interface",
+      "path": ["crate", "generated_interface", "z2VL4Y"],
+      "storage_fingerprint": "8efc500bb6069c7fcbf71ff37faa9f17a3a7450dccf8b1edfaacf9afbc8c3d62"
+    },
+    {
+      "spelling": "Referent",
+      "import_source": "interface",
+      "path": ["crate", "generated_interface", "z2VL59"],
+      "storage_fingerprint": "927d1485d22fb61a7b0aab59a5fd48df9fb0be3cb740689d815e55485cf09a6b"
+    },
+    {
+      "spelling": "RecordSet",
+      "import_source": "interface",
+      "path": ["crate", "generated_interface", "z2VL4g"],
+      "storage_fingerprint": "b09d0bdfd6fea05dc122acb578f05e2025d431a361883baf7ae486eb930fdd00"
+    },
+    {
+      "spelling": "GuardianReason",
+      "import_source": "interface",
+      "path": ["crate", "generated_interface", "z2VL4k"],
+      "storage_fingerprint": "0537d3a598f974b0c20867c255754a6bae9e8eecfc437621108c94be18c254a4"
+    },
+    {
+      "spelling": "Aliases",
+      "import_source": "interface",
+      "path": ["crate", "generated_interface", "z2VL5A"],
+      "storage_fingerprint": "462c2499a7a23b57389afdbdeb86ff4115b67ec3eb8229dd12e457f063e750d6"
+    },
+    {
+      "spelling": "RecordIdentifier",
+      "import_source": "interface",
+      "path": ["crate", "generated_interface", "z2VL4e"],
+      "storage_fingerprint": "9821abd8ab2208433fdb346fffb24251f8830472fe608dc16c453d2ee17ad5a0"
+    },
+    {
+      "spelling": "Domain",
+      "import_source": "signal-domain",
+      "path": ["signal_domain", "Domain"],
+      "storage_fingerprint": "f671462eee55f82ead6feaece69b91e1c7a8bbccf13cd9e94a4a0a6c12d65b15"
+    }
+  ],
   "names": [
     { "spelling": "Record", "root": "universal", "chain": [1000] },
     { "spelling": "Entry", "root": "universal", "chain": [1001] },

@@ -973,8 +973,9 @@ fn scope_of_stays_typed_application_data_without_a_runtime_substitute() {
 }
 
 #[test]
-fn spirit_fixture_is_pinned_as_read_only_source_evidence_without_legacy_cargo() {
+fn spirit_fixture_and_runtime_domain_type_share_the_exact_pin() {
     assert!(FLAKE.contains(SIGNAL_DOMAIN_REVISION));
     assert!(!CARGO_MANIFEST.contains("schema-rust"));
-    assert!(!CARGO_MANIFEST.contains("signal-domain"));
+    assert!(CARGO_MANIFEST.contains("signal-domain"));
+    assert!(CARGO_MANIFEST.contains(SIGNAL_DOMAIN_REVISION));
 }

@@ -62,9 +62,6 @@ pub fn exercise_build_script_sema(
 mod generated_interface {
     use interface_protos::{Input as z2VL5p, Output as z2VL5q, Refusal as z2VL5r};
 
-    type z2VL4p = String;
-    type z2VL4r<Payload> = Vec<Payload>;
-    type z2VL58 = u64;
     type z2VL5H = u64;
 
     include!(concat!(env!("OUT_DIR"), "/build-script-interface.rs"));
@@ -103,20 +100,23 @@ mod generated_interface {
             refusal_display_matches_debug,
         }
     }
+
+    pub(super) fn stored_record_parts(value: u64) -> (z2VL4e, z2VL4Y) {
+        (
+            z2VL4e(value),
+            z2VL4Y {
+                field_0: z2VL4q(vec![z2VL4o("software".to_owned())]),
+                field_1: z2VL4t::z2VL4u,
+                field_2: z2VL4s("typed value".to_owned()),
+                field_3: z2VL4z::z2VL54,
+            },
+        )
+    }
 }
 
 #[allow(dead_code, non_camel_case_types)]
 mod generated_sema {
     use sema_engine::{Engine, EngineOpen, SchemaVersion, TableSpecification};
-
-    type z2VL4e = u64;
-    type z2VL4Y = String;
-    type z2VL59 = u64;
-    type z2VL5A = Vec<String>;
-    type z2VL58 = u64;
-
-    #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, Eq, PartialEq)]
-    pub struct z2VL5m(String);
 
     include!(concat!(env!("OUT_DIR"), "/build-script-sema.rs"));
 
@@ -128,10 +128,11 @@ mod generated_sema {
         engine.register_table(z2VL5n::descriptor())?;
         engine.register_table(z2VL5o::descriptor())?;
 
-        let domain = z2VL5m("software/code-generation".to_owned());
+        let domain = signal_domain::Domain::All;
+        let (identifier, entry) = crate::generated_interface::stored_record_parts(17);
         let stored = z2VL5e {
-            field_0: 17,
-            field_1: "typed value".to_owned(),
+            field_0: identifier,
+            field_1: entry,
         };
         engine.assert_keyed(z2VL5k::assertion(&domain, stored.clone())?)?;
         let first_read = engine.match_records(z2VL5k::query(&domain)?)?;

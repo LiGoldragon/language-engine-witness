@@ -4,6 +4,7 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+use batch_core_logos::WholeLogosItem;
 use batch_nomos_engine::batch::{
     BatchConfiguration, BatchGenerationError, DeferredBatchConstruct, OfflineBatchConfiguration,
     OfflineBatchGeneration, PreparedBatchGenerator,
@@ -15,6 +16,10 @@ use language_engine_witness::{
 };
 use nexus_core_ethos::{EthosDecodeError, WholeEthosFileKind};
 use nexus_rust_logos::RustEncodedIdCodec;
+use sema_engine::{
+    Assertion, Engine, EngineOpen, EngineRecord, Error as SemaError, FamilyName, RecordKey,
+    SchemaHash, SchemaVersion, TableDescriptor, TableName,
+};
 use slice_name_table::LocalEncodedId;
 use slice_signal_sema_translator::{VocabularyEncodedId, VocabularyRoot};
 
@@ -97,6 +102,8 @@ fn library_projects_all_goldens_and_reports_exactly_deferred_semantics() {
     );
     assert_eq!(sema.rust().matches("type Record =").count(), 3);
     assert_eq!(sema.rust().matches("type Key =").count(), 3);
+    assert!(sema.rust().contains("type Key = signal_domain::Domain"));
+    assert!(!sema.rust().contains("pub struct z2VL5m"));
 
     let migration = RustEncodedIdCodec::encode(&universal(1070));
     let migrations = RustEncodedIdCodec::encode(&universal(1074));
@@ -114,6 +121,90 @@ fn library_projects_all_goldens_and_reports_exactly_deferred_semantics() {
         RustEncodedIdCodec::encode(&universal(1071))
     );
     assert!(behavior.durable_round_trip);
+}
+
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, Eq, PartialEq)]
+struct StoredShapeV1 {
+    key: String,
+    value: u64,
+}
+
+impl EngineRecord for StoredShapeV1 {
+    fn record_key(&self) -> RecordKey {
+        RecordKey::new(self.key.clone())
+    }
+}
+
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, Eq, PartialEq)]
+struct StoredShapeV2 {
+    key: String,
+    value: u64,
+    extra: u64,
+}
+
+#[test]
+fn same_ids_changed_layout_moves_hash_and_existing_store_refuses_registration() {
+    let generator = generator();
+    let original = generator.generate(SEMA).expect("original Sema generation");
+    let changed_source = SEMA.replace(
+        "StoredRecord.{RecordIdentifier Entry}",
+        "StoredRecord.{RecordIdentifier Entry Entry}",
+    );
+    let changed = generator
+        .generate(&changed_source)
+        .expect("same identities with changed StoredRecord layout generate");
+    let original_hash = records_schema_hash(&original);
+    let changed_hash = records_schema_hash(&changed);
+    assert_ne!(original_hash, changed_hash);
+
+    let temporary = tempfile::tempdir().expect("fresh incompatibility store");
+    let path = temporary.path().join("shape-mismatch.sema");
+    {
+        let mut engine = Engine::open(EngineOpen::new(&path, SchemaVersion::new(1)))
+            .expect("original store opens");
+        let records = engine
+            .register_table(TableDescriptor::<StoredShapeV1>::new(
+                TableName::new("z2VL5k"),
+                FamilyName::new("z2VL5k"),
+                SchemaHash::new(original_hash),
+            ))
+            .expect("original generated identity registers");
+        engine
+            .assert(Assertion::new(
+                records,
+                StoredShapeV1 {
+                    key: "witness".to_owned(),
+                    value: 17,
+                },
+            ))
+            .expect("original-shape bytes persist");
+    }
+
+    let mut reopened = Engine::open(EngineOpen::new(&path, SchemaVersion::new(1)))
+        .expect("existing store reopens");
+    match reopened.register_table(TableDescriptor::<StoredShapeV2>::new(
+        TableName::new("z2VL5k"),
+        FamilyName::new("z2VL5k"),
+        SchemaHash::new(changed_hash),
+    )) {
+        Err(SemaError::FamilyIdentityMismatch { .. }) => {}
+        Err(error) => panic!("unexpected changed-layout registration error: {error}"),
+        Ok(_) => panic!("changed layout unexpectedly registered over existing bytes"),
+    }
+}
+
+fn records_schema_hash(outcome: &batch_nomos_engine::batch::BatchGenerationOutcome) -> [u8; 32] {
+    outcome
+        .logos()
+        .items()
+        .iter()
+        .find_map(|item| match item {
+            WholeLogosItem::Table(table) if table.name() == &universal(1071) => {
+                Some(table.schema_hash().expect("table schema hashes"))
+            }
+            _ => None,
+        })
+        .expect("records table projects")
 }
 
 #[test]
@@ -211,7 +302,7 @@ fn compile_nexus_artifact(generated: &Path, scratch: &Path) {
     fs::write(
         scratch.join("src/lib.rs"),
         format!(
-            "pub struct {entry};\npub struct {record_set};\npub struct {guardian_reason};\npub struct {referent};\npub type {unit} = ();\n{emitted}"
+            "pub mod generated_interface {{\n    pub struct {entry};\n    pub struct {record_set};\n    pub struct {guardian_reason};\n    pub struct {referent};\n}}\npub type {unit} = ();\n{emitted}"
         ),
     )
     .expect("scratch Nexus source");

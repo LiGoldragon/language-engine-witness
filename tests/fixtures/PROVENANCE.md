@@ -1,6 +1,7 @@
 `spirit-domain.ethos` is an exact read-only inventory witness for the separately
-pinned `signal-domain` source. A Nix check compares both files byte for byte
-without evaluating or linking the legacy `signal-domain` crate.
+pinned `signal-domain` source. A Nix check compares both files byte for byte.
+The generated Sema execution witness also links that exact revision so its
+`records` table uses the real `signal_domain::Domain` key type and value.
 
 The Nomos process witness has no checked-in package or pipeline fixture. It
 authors and seals its population through the real sema-translator process, then
@@ -26,3 +27,10 @@ they do not authorize migration behavior, schema evolution, or old-store
 compatibility. The generated `records` specification is registered in a fresh
 real redb-backed Sema store and its `StoredRecord`, keyed by `Domain`, survives
 write/read and reopen/read equality.
+
+[assumption primary-vq6.7-A1 — external storage contracts] The batch assembly
+owns explicit storage fingerprints for Rust builtins and imported types. The
+`signal-domain.Domain` contract is the SHA-256 digest of the exact schema file
+at the pinned source revision; the Interface contracts are explicit versioned
+assembly inputs and must change whenever their archived layouts change. The
+generator neither guesses nor coerces an external layout.
