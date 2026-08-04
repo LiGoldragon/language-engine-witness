@@ -452,13 +452,128 @@ fn strict_interface_stream_lowers_through_nomos_logos_and_rust_without_deferral(
     fs::create_dir(temporary.path().join("src")).expect("scratch source directory");
     fs::write(
         temporary.path().join("Cargo.toml"),
-        "[package]\nname = \"interface-wire-slice\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n[features]\nnota-text = []\n\n[dependencies]\nrkyv = { version = \"0.8\", default-features = false, features = [\"std\", \"bytecheck\", \"little_endian\", \"pointer_width_32\", \"unaligned\"] }\n",
+        "[package]\nname = \"interface-wire-slice\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n[features]\nnota-text = []\n\n[dependencies]\nrkyv = { version = \"0.8\", default-features = false, features = [\"std\", \"bytecheck\", \"little_endian\", \"pointer_width_32\", \"unaligned\"] }\nprotos = { git = \"https://github.com/LiGoldragon/protos.git\", rev = \"95aeb1470c549a404518faf1ab0280a36583a2b3\" }\n",
     )
     .expect("scratch manifest with the wire archive contract");
+    let runtime = r#"
+use std::collections::{BTreeMap, VecDeque};
+use protos::{StreamEvent as _, StreamOpen as _};
+
+struct ObserverState {
+    open: bool,
+    events: VecDeque<WireChoice>,
+}
+
+struct ObserverRuntime {
+    reject_next: bool,
+    next_identity: u64,
+    streams: BTreeMap<u64, ObserverState>,
+}
+
+impl ObserverRuntime {
+    fn new(reject_next: bool) -> Self {
+        Self {
+            reject_next,
+            next_identity: 1,
+            streams: BTreeMap::new(),
+        }
+    }
+
+    fn terminate(
+        &mut self,
+        termination: ObserverTermination,
+    ) -> Result<(), ObserverTerminationRefusal> {
+        let identity = termination.stream.identity().value();
+        let Some(state) = self.streams.get_mut(&identity) else {
+            return Err(ObserverTerminationRefusal::UnknownStream);
+        };
+        if !state.open {
+            return Err(ObserverTerminationRefusal::AlreadyClosed);
+        }
+        state.open = false;
+        state.events.clear();
+        Ok(())
+    }
+}
+
+impl protos::StreamOpen for ObserverRuntime {
+    type Initiation = ObserverInitiation;
+    type Event = WireChoice;
+    type InitiationRefusal = ObserverInitiationRefusal;
+
+    fn open(
+        &mut self,
+        _initiation: Self::Initiation,
+    ) -> Result<protos::Stream<Self::Event>, Self::InitiationRefusal> {
+        if self.reject_next {
+            self.reject_next = false;
+            return Err(ObserverInitiationRefusal::InvalidQuery);
+        }
+        let identity = self.next_identity;
+        self.next_identity += 1;
+        self.streams.insert(
+            identity,
+            ObserverState {
+                open: true,
+                events: VecDeque::from([WireChoice::Empty]),
+            },
+        );
+        Ok(protos::Stream::new(protos::StreamIdentity::new(identity)))
+    }
+}
+
+impl protos::StreamEvent for ObserverRuntime {
+    type Event = WireChoice;
+
+    fn next(&mut self, stream: &protos::Stream<Self::Event>) -> Option<Self::Event> {
+        self.streams
+            .get_mut(&stream.identity().value())
+            .filter(|state| state.open)
+            .and_then(|state| state.events.pop_front())
+    }
+}
+
+fn observer_initiation() -> ObserverInitiation {
+    ObserverInitiation {
+        query: WireEnvelope(Entry),
+    }
+}
+
+fn main() {
+    let choice = WireChoice::Batch(vec![Entry]);
+    let choice_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&choice).unwrap();
+    let restored_choice = rkyv::from_bytes::<WireChoice, rkyv::rancor::Error>(&choice_bytes).unwrap();
+    assert_eq!(restored_choice, choice);
+    let result = WireResult::<Ordered>(Ok(vec![Ordered]));
+    let result_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&result).unwrap();
+    let restored_result = rkyv::from_bytes::<WireResult<Ordered>, rkyv::rancor::Error>(&result_bytes).unwrap();
+    assert_eq!(restored_result, result);
+
+    let mut runtime = ObserverRuntime::new(true);
+    assert!(matches!(runtime.open(observer_initiation()), Err(ObserverInitiationRefusal::InvalidQuery)));
+    let first = runtime.open(observer_initiation()).unwrap();
+    let second = runtime.open(observer_initiation()).unwrap();
+    assert_eq!(first.identity().value(), 1);
+    assert_eq!(second.identity().value(), 2);
+    assert!(matches!(runtime.next(&first), Some(WireChoice::Empty)));
+    assert_eq!(runtime.next(&first), None);
+    runtime.terminate(ObserverTermination { stream: first.clone() }).unwrap();
+    assert!(matches!(
+        runtime.terminate(ObserverTermination { stream: first }),
+        Err(ObserverTerminationRefusal::AlreadyClosed)
+    ));
+    assert!(matches!(
+        runtime.terminate(ObserverTermination {
+            stream: protos::Stream::new(protos::StreamIdentity::new(999)),
+        }),
+        Err(ObserverTerminationRefusal::UnknownStream)
+    ));
+}
+"#;
     fs::write(
         temporary.path().join("src/main.rs"),
         format!(
-            "mod protos {{\n    pub trait Input {{}}\n    pub trait Refusal: std::error::Error {{}}\n    pub struct Stream<Event>(pub std::marker::PhantomData<Event>);\n}}\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Entry;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]\npub struct Ordered;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Error;\n{emitted}\nfn assert_input<T: protos::Input>() {{}}\nfn assert_refusal<T: protos::Refusal>() {{}}\nfn main() {{ let choice = WireChoice::Batch(vec![Entry]); let choice_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&choice).unwrap(); let restored_choice = rkyv::from_bytes::<WireChoice, rkyv::rancor::Error>(&choice_bytes).unwrap(); assert_eq!(restored_choice, choice); let result = WireResult::<Ordered>(Ok(vec![Ordered])); let result_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&result).unwrap(); let restored_result = rkyv::from_bytes::<WireResult<Ordered>, rkyv::rancor::Error>(&result_bytes).unwrap(); assert_eq!(restored_result, result); assert_input::<ObserverInitiation>(); assert_input::<ObserverTermination>(); assert_refusal::<ObserverInitiationRefusal>(); assert_refusal::<ObserverTerminationRefusal>(); }}\n"
+            "#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Entry;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]\npub struct Ordered;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Error;\n{emitted}\n{runtime}\n"
         ),
     )
     .expect("scratch generated wire source");

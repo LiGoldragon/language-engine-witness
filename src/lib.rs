@@ -1,7 +1,5 @@
 //! Process-level witness support only; production behavior lives in the component crates.
 
-pub mod stream_lifecycle;
-
 /// Nexus Rust emitted by the socket-free Nomos API from this crate's build script.
 pub const BUILD_SCRIPT_NEXUS_RUST: &str =
     include_str!(concat!(env!("OUT_DIR"), "/build-script-nexus.rs"));

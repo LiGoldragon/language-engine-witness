@@ -495,7 +495,7 @@ dependencies = [
  "raw-discovery 0.4.0 (git+https://github.com/LiGoldragon/raw-discovery.git?rev=7290f65bbb5e7825ab2ca58340631d154d69d110)",
  "rkyv",
  "rust-logos 0.19.0",
- "rust-logos 0.27.0 (git+https://github.com/LiGoldragon/rust-logos.git?rev=fa4ddeb7a2554d01fa46005cd684357cb7219867)",
+ "rust-logos 0.27.0 (git+https://github.com/LiGoldragon/rust-logos.git?rev=306098361221b0f19b82156ab697134520fce8bc)",
  "sema-engine 0.12.0",
  "sema-translator",
  "signal-domain",
@@ -906,10 +906,10 @@ dependencies = [
 [[package]]
 name = "rust-logos"
 version = "0.27.0"
-source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=9109c2a4e172db9cde633760fac932ece69f25f9#9109c2a4e172db9cde633760fac932ece69f25f9"
+source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=306098361221b0f19b82156ab697134520fce8bc#306098361221b0f19b82156ab697134520fce8bc"
 dependencies = [
  "bs58",
- "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=f02ce18c93f85ce44e6e2e291a2bd514346eccbe)",
+ "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=a960aacff8ed13dc14b0ae0094208189d6609434)",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "name-table 0.3.0",
  "prettyplease",
@@ -926,10 +926,10 @@ dependencies = [
 [[package]]
 name = "rust-logos"
 version = "0.27.0"
-source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=fa4ddeb7a2554d01fa46005cd684357cb7219867#fa4ddeb7a2554d01fa46005cd684357cb7219867"
+source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=9109c2a4e172db9cde633760fac932ece69f25f9#9109c2a4e172db9cde633760fac932ece69f25f9"
 dependencies = [
  "bs58",
- "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=a960aacff8ed13dc14b0ae0094208189d6609434)",
+ "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=f02ce18c93f85ce44e6e2e291a2bd514346eccbe)",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "name-table 0.3.0",
  "prettyplease",
