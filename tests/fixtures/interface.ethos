@@ -5,18 +5,18 @@ Interface.1
   [Recorded.RecordIdentifier Observed.RecordSet Registered.ReferentIdentifier]
   [GuardianRejection.{GuardianReason Explanation} ReferentRejection.{GuardianReason Explanation}]
   [
-    Topic.Text
+    Topic.String
     Topics.Vector.Topic
-    Description.Text
-    Explanation.Text
+    Description.String
+    Explanation.String
     Kind.[Decision Principle Correction Clarification Constraint]
     Magnitude.[Minimum VeryLow Low Medium High VeryHigh Maximum]
     Entry.{Topics Kind Description Magnitude}
     Query.{Topic Kind}
     RecordIdentifier.Integer
     RecordSet.Vector.Entry
-    Referent.Text
-    Aliases.Vector.Text
+    Referent.String
+    Aliases.Vector.String
     ReferentRegistration.{Referent Aliases}
     ReferentIdentifier.Integer
     GuardianReason.[NotSpirit PrivateContent MeaningUnclear Duplicate]

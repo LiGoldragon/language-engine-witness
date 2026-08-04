@@ -59,7 +59,7 @@
       "storage_fingerprint": "1c1daa8f7b8ac024ff74f309361d7b4e29988ff95b71d850d5c929536d195405"
     },
     {
-      "spelling": "Text",
+      "spelling": "String",
       "path": ["String"],
       "storage_fingerprint": "c59c087db9ce6e5f2c9c0aa2352d487b5a547bba759227c948844d7d00813d65"
     },
@@ -124,7 +124,7 @@
     { "spelling": "Explanation", "root": "universal", "chain": [1014] },
     { "spelling": "ReferentRejection", "root": "universal", "chain": [1015] },
     { "spelling": "Topic", "root": "universal", "chain": [1016] },
-    { "spelling": "Text", "root": "universal", "chain": [1017] },
+    { "spelling": "String", "root": "universal", "chain": [1017] },
     { "spelling": "Topics", "root": "universal", "chain": [1018] },
     { "spelling": "Vector", "root": "universal", "chain": [1019] },
     { "spelling": "Description", "root": "universal", "chain": [1020] },
