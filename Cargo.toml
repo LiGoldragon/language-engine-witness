@@ -16,11 +16,11 @@ interface-protos={package="protos",git="https://github.com/LiGoldragon/protos.gi
 [dev-dependencies]
 batch-nomos-engine={package="nomos-engine",git="https://github.com/LiGoldragon/nomos-engine.git",rev="39f9187cbf1b870ef169ed88595240fd304a7cea"}
 tempfile="3"
-nexus-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="5fead8cb69144f0b4bfbfa7b889c3cd32d1ce4da"}
+nexus-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="7df9ce1af3c816516ffe188871fbc2146e38c119"}
 batch-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="f02ce18c93f85ce44e6e2e291a2bd514346eccbe"}
 nexus-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="a960aacff8ed13dc14b0ae0094208189d6609434"}
 batch-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="83feebbd34b66d493a0a3c7ffea68dab1dd7873c"}
-nexus-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="f8c78ea7f310effca81397577cc52cddd2217c38"}
+nexus-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="58bcdfbd117443e031a0f323c7c8443ac824cf75"}
 nexus-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="306098361221b0f19b82156ab697134520fce8bc"}
 slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="736460fdafbd65d6500fe15e6ae8844b42a39e7c"}
 slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="9a61e2ac1bf8a8c1163794d695902115a05a4007"}
@@ -33,7 +33,7 @@ slice-sema-translator={package="sema-translator",git="https://github.com/LiGoldr
 slice-signal-frame={package="signal-frame",git="https://github.com/LiGoldragon/signal-frame.git",rev="0786fbe8caf27552afcdd5deb85bc82ec6088337",default-features=false}
 slice-signal-sema-translator={package="signal-sema-translator",git="https://github.com/LiGoldragon/signal-sema-translator.git",rev="51c02c4a7b6f67d9dad095f11986085d7d65785b"}
 slice-structural-codec={package="structural-codec",git="https://github.com/LiGoldragon/structural-codec.git",rev="f47fac132722916912b7071556f69cbbf4026f7f"}
-nexus-structural-codec={package="structural-codec",git="https://github.com/LiGoldragon/structural-codec.git",rev="d3b7d2bacf8bb72db63d9a25f20d489bcfc8219c"}
+nexus-structural-codec={package="structural-codec",git="https://github.com/LiGoldragon/structural-codec.git",rev="fc6807f4365cde1551bbfe120520aec68245abdb"}
 [build-dependencies]
 batch-nomos-engine={package="nomos-engine",git="https://github.com/LiGoldragon/nomos-engine.git",rev="39f9187cbf1b870ef169ed88595240fd304a7cea"}
 [features]

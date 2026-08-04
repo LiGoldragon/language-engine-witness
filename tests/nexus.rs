@@ -36,6 +36,7 @@ const INTERFACE_TYPE_SOURCE: &str = r#"Interface.1
     WireProduct.{Entry Vector<Entry>}
     WireChoice.[Empty Batch.Vector<Entry>]
     WireResult.Result<Vector<Ordered> Error>
+    WireDivergence.Result<Left.Sortable Right.Sortable>
     Observer.Stream.(WireEnvelope WireChoice)
   ]
 }
@@ -59,10 +60,14 @@ const FIXTURE_VOCABULARY: &[&str] = &[
     "WireProduct",
     "WireChoice",
     "WireResult",
+    "WireDivergence",
     "Empty",
     "Batch",
     "Result",
     "Ordered",
+    "Left",
+    "Right",
+    "Sortable",
     "Error",
     "Observer",
     "Stream",
@@ -139,6 +144,8 @@ impl FixtureBindings {
                 .expect("Universal Result application head")
                 .with_trait_quality(self.identity("Ordered"))
                 .expect("Universal Ordered trait quality")
+                .with_trait_quality(self.identity("Sortable"))
+                .expect("Universal Sortable trait quality")
                 .with_stream_transformer(self.identity("Stream"))
                 .expect("Universal Stream transformer");
         for spelling in FIXTURE_VOCABULARY {
@@ -369,7 +376,7 @@ fn strict_interface_stream_lowers_through_nomos_logos_and_rust_without_deferral(
         )
         .expect("lower Interface declarations and strict stream lifecycle");
     let logos = outcome.logos();
-    assert_eq!(logos.items().len(), 5);
+    assert_eq!(logos.items().len(), 6);
     for item in logos.items() {
         let attributes = match item {
             WholeLogosItem::Newtype(item) => item.attributes(),
@@ -415,16 +422,22 @@ fn strict_interface_stream_lowers_through_nomos_logos_and_rust_without_deferral(
     let emitted = rust_logos()
         .emit_fixture(&restored, &bindings.rust_projections())
         .expect("project wire-attributed Logos to Rust");
-    assert_eq!(emitted.matches("#[rustfmt::skip]").count(), 4, "{emitted}");
-    assert_eq!(emitted.matches("rkyv::Archive").count(), 4, "{emitted}");
+    assert_eq!(emitted.matches("#[rustfmt::skip]").count(), 5, "{emitted}");
+    assert_eq!(emitted.matches("rkyv::Archive").count(), 5, "{emitted}");
     assert_eq!(
         emitted.matches("nota::NotaDecodeTraced").count(),
-        4,
+        5,
         "{emitted}"
     );
     assert!(emitted.contains("Batch(Vec<Entry>)"), "{emitted}");
     assert!(
         emitted.contains("pub struct WireResult<Ordered: Ord>(Result<Vec<Ordered>, Error>);"),
+        "{emitted}"
+    );
+    assert!(
+        emitted.contains(
+            "pub struct WireDivergence<Left: Sortable, Right: Sortable>(Result<Left, Right>);"
+        ),
         "{emitted}"
     );
     assert!(
@@ -566,7 +579,7 @@ fn main() {
     fs::write(
         temporary.path().join("src/main.rs"),
         format!(
-            "#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Entry;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]\npub struct Ordered;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Error;\n{emitted}\n{runtime}\n"
+            "pub trait Sortable {{}}\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Entry;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]\npub struct Ordered;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Left;\nimpl Sortable for Left {{}}\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Right;\nimpl Sortable for Right {{}}\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Error;\n{emitted}\n{runtime}\n"
         ),
     )
     .expect("scratch generated wire source");
