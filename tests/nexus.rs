@@ -10,7 +10,7 @@ use nexus_core_ethos::{
 use nexus_core_logos::{WholeLogos, WholeLogosItem, WholeLogosTypeAttributes};
 use nexus_core_nomos::{
     InterfaceRoleIdentities, InterfaceStructuralTransformation, NexusStructuralTransformation,
-    NexusTransformation,
+    NexusTransformation, StreamLifecycleIdentities,
 };
 use nexus_rust_logos::{
     FixtureRustEmittedIdentifier, FixtureRustNameProjectionTable, FixtureRustVocabulary,
@@ -36,7 +36,7 @@ const INTERFACE_TYPE_SOURCE: &str = r#"Interface.1
     WireProduct.{Entry Vector<Entry>}
     WireChoice.[Empty Batch.Vector<Entry>]
     WireResult.Result<Vector<Ordered> Error>
-    Observer.Stream.(WireEnvelope WireProduct WireChoice)
+    Observer.Stream.(WireEnvelope WireChoice)
   ]
 }
 "#;
@@ -156,8 +156,9 @@ impl FixtureBindings {
     }
 
     fn rust_projections(&self) -> FixtureRustNameProjectionTable {
-        FixtureRustNameProjectionTable::try_from_entries(FIXTURE_VOCABULARY.iter().map(
-            |spelling| {
+        let mut entries = FIXTURE_VOCABULARY
+            .iter()
+            .map(|spelling| {
                 let rust_spelling = if *spelling == "Vector" {
                     "Vec"
                 } else {
@@ -168,9 +169,37 @@ impl FixtureBindings {
                     FixtureRustEmittedIdentifier::try_new(rust_spelling)
                         .expect("fixture spelling is a Rust identifier"),
                 )
-            },
-        ))
-        .expect("one-to-one Rust projections")
+            })
+            .collect::<Vec<_>>();
+        entries.extend([
+            (
+                universal(400),
+                FixtureRustEmittedIdentifier::try_new("ObserverInitiation")
+                    .expect("stream initiation spelling"),
+            ),
+            (
+                universal(401),
+                FixtureRustEmittedIdentifier::try_new("ObserverHandle")
+                    .expect("stream handle spelling"),
+            ),
+            (
+                universal(402),
+                FixtureRustEmittedIdentifier::try_new("ObserverInitiationRefusal")
+                    .expect("stream initiation refusal spelling"),
+            ),
+            (
+                universal(403),
+                FixtureRustEmittedIdentifier::try_new("ObserverTermination")
+                    .expect("stream termination spelling"),
+            ),
+            (
+                universal(404),
+                FixtureRustEmittedIdentifier::try_new("ObserverTerminationRefusal")
+                    .expect("stream termination refusal spelling"),
+            ),
+        ]);
+        FixtureRustNameProjectionTable::try_from_entries(entries)
+            .expect("one-to-one Rust projections")
     }
 }
 
@@ -326,41 +355,63 @@ fn untouched_nexus_ethos_generates_plain_traits_and_decisions_that_compile_and_r
 }
 
 #[test]
-fn strict_interface_stream_initiation_defers_through_nomos_before_logos_rust_and_execution() {
+fn strict_interface_stream_lowers_through_nomos_logos_and_rust_without_deferral() {
     let bindings = FixtureBindings::new();
     let ethos = EthosCodec::build(grammar_ids(), bindings.priors())
         .expect("composite Ethos codec")
         .decode(INTERFACE_TYPE_SOURCE, &bindings)
         .expect("current Interface type syntax decodes");
     let outcome = NexusTransformation::new()
+        .with_stream_lifecycle_identities(vec![
+            StreamLifecycleIdentities::new(
+                bindings.identity("Observer"),
+                universal(400),
+                universal(401),
+                universal(402),
+                universal(403),
+                universal(404),
+            )
+            .expect("distinct caller-authored stream lifecycle identities"),
+        ])
+        .expect("one strict stream lifecycle assignment")
         .lower_interface(
             ethos.ethos(),
             &InterfaceRoleIdentities::new(universal(300), universal(301), universal(302))
                 .expect("distinct Interface role identities"),
         )
-        .expect("lower Interface declarations and strict stream initiation");
-    assert_eq!(outcome.deferred_stream_initiations().len(), 1);
-    let initiation = &outcome.deferred_stream_initiations()[0];
-    assert_eq!(initiation.stream, bindings.identity("Observer"));
-    assert_eq!(
-        initiation.query,
-        nexus_core_ethos::WholeEthosTypeReference::Identity(bindings.identity("WireEnvelope"))
-    );
-    assert_eq!(
-        initiation.subscription,
-        nexus_core_ethos::WholeEthosTypeReference::Identity(bindings.identity("WireProduct"))
-    );
-    assert_eq!(
-        initiation.event,
-        nexus_core_ethos::WholeEthosTypeReference::Identity(bindings.identity("WireChoice"))
-    );
+        .expect("lower Interface declarations and strict stream lifecycle");
     let logos = outcome.logos();
-    assert_eq!(logos.items().len(), 4);
+    assert_eq!(logos.items().len(), 5);
     for item in logos.items() {
         let attributes = match item {
             WholeLogosItem::Newtype(item) => item.attributes(),
             WholeLogosItem::Struct(item) => item.attributes(),
             WholeLogosItem::Enumeration(item) => item.attributes(),
+            WholeLogosItem::StreamLifecycle(lifecycle) => {
+                assert_eq!(lifecycle.stream(), &bindings.identity("Observer"));
+                assert_eq!(
+                    lifecycle.initiation().query(),
+                    &nexus_core_logos::WholeLogosTypeReference::Identity(
+                        bindings.identity("WireEnvelope")
+                    )
+                );
+                assert_eq!(
+                    lifecycle.initiation().success().event(),
+                    &nexus_core_logos::WholeLogosTypeReference::Identity(
+                        bindings.identity("WireChoice")
+                    )
+                );
+                assert_eq!(lifecycle.initiation().input(), &universal(400));
+                assert_eq!(lifecycle.initiation().success().identity(), &universal(401));
+                assert_eq!(lifecycle.initiation().refusal(), &universal(402));
+                assert_eq!(lifecycle.termination().input(), &universal(403));
+                assert_eq!(
+                    lifecycle.termination().identity(),
+                    lifecycle.initiation().success().identity()
+                );
+                assert_eq!(lifecycle.termination().refusal(), &universal(404));
+                continue;
+            }
             WholeLogosItem::TraitDef(_)
             | WholeLogosItem::TraitImpl(_)
             | WholeLogosItem::Table(_) => {
@@ -388,6 +439,14 @@ fn strict_interface_stream_initiation_defers_through_nomos_before_logos_rust_and
         emitted.contains("pub struct WireResult<Ordered: Ord>(Result<Vec<Ordered>, Error>);"),
         "{emitted}"
     );
+    assert!(
+        emitted.contains("pub type ObserverHandle = protos::Stream<WireChoice>;"),
+        "{emitted}"
+    );
+    assert!(
+        emitted.contains("pub struct ObserverTermination {\n    pub stream: ObserverHandle,"),
+        "{emitted}"
+    );
 
     let temporary = tempfile::tempdir().expect("scratch crate directory");
     fs::create_dir(temporary.path().join("src")).expect("scratch source directory");
@@ -399,7 +458,7 @@ fn strict_interface_stream_initiation_defers_through_nomos_before_logos_rust_and
     fs::write(
         temporary.path().join("src/main.rs"),
         format!(
-            "#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Entry;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]\npub struct Ordered;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Error;\n{emitted}\nfn main() {{ let choice = WireChoice::Batch(vec![Entry]); let choice_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&choice).unwrap(); let restored_choice = rkyv::from_bytes::<WireChoice, rkyv::rancor::Error>(&choice_bytes).unwrap(); assert_eq!(restored_choice, choice); let result = WireResult::<Ordered>(Ok(vec![Ordered])); let result_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&result).unwrap(); let restored_result = rkyv::from_bytes::<WireResult<Ordered>, rkyv::rancor::Error>(&result_bytes).unwrap(); assert_eq!(restored_result, result); }}\n"
+            "mod protos {{\n    pub trait Input {{}}\n    pub trait Refusal: std::error::Error {{}}\n    pub struct Stream<Event>(pub std::marker::PhantomData<Event>);\n}}\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Entry;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]\npub struct Ordered;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Error;\n{emitted}\nfn assert_input<T: protos::Input>() {{}}\nfn assert_refusal<T: protos::Refusal>() {{}}\nfn main() {{ let choice = WireChoice::Batch(vec![Entry]); let choice_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&choice).unwrap(); let restored_choice = rkyv::from_bytes::<WireChoice, rkyv::rancor::Error>(&choice_bytes).unwrap(); assert_eq!(restored_choice, choice); let result = WireResult::<Ordered>(Ok(vec![Ordered])); let result_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&result).unwrap(); let restored_result = rkyv::from_bytes::<WireResult<Ordered>, rkyv::rancor::Error>(&result_bytes).unwrap(); assert_eq!(restored_result, result); assert_input::<ObserverInitiation>(); assert_input::<ObserverTermination>(); assert_refusal::<ObserverInitiationRefusal>(); assert_refusal::<ObserverTerminationRefusal>(); }}\n"
         ),
     )
     .expect("scratch generated wire source");

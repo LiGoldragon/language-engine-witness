@@ -176,23 +176,6 @@ dependencies = [
 [[package]]
 name = "core-ethos"
 version = "0.25.0"
-source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=038dbeb6ba09eaa27341be9d917b5c1cb08abf72#038dbeb6ba09eaa27341be9d917b5c1cb08abf72"
-dependencies = [
- "content-identity 0.3.0",
- "content-identity 0.4.0",
- "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
- "nomos-types",
- "protos 0.3.0",
- "raw-discovery 0.4.0 (git+https://github.com/LiGoldragon/raw-discovery.git?rev=2d4e2e00f2821c4e2893fa96028cef0ac76e9644)",
- "rkyv",
- "signal-sema-translator",
- "structural-codec 0.19.0 (git+https://github.com/LiGoldragon/structural-codec.git?rev=d3b7d2bacf8bb72db63d9a25f20d489bcfc8219c)",
- "thiserror",
-]
-
-[[package]]
-name = "core-ethos"
-version = "0.25.0"
 source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=83feebbd34b66d493a0a3c7ffea68dab1dd7873c#83feebbd34b66d493a0a3c7ffea68dab1dd7873c"
 dependencies = [
  "content-identity 0.3.0",
@@ -203,6 +186,23 @@ dependencies = [
  "rkyv",
  "signal-sema-translator",
  "structural-codec 0.19.0 (git+https://github.com/LiGoldragon/structural-codec.git?rev=f47fac132722916912b7071556f69cbbf4026f7f)",
+ "thiserror",
+]
+
+[[package]]
+name = "core-ethos"
+version = "0.25.0"
+source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=904dfce385ad9c7bfe0fa894267dd8815df100f4#904dfce385ad9c7bfe0fa894267dd8815df100f4"
+dependencies = [
+ "content-identity 0.3.0",
+ "content-identity 0.4.0",
+ "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
+ "nomos-types",
+ "protos 0.3.0",
+ "raw-discovery 0.4.0 (git+https://github.com/LiGoldragon/raw-discovery.git?rev=2d4e2e00f2821c4e2893fa96028cef0ac76e9644)",
+ "rkyv",
+ "signal-sema-translator",
+ "structural-codec 0.19.0 (git+https://github.com/LiGoldragon/structural-codec.git?rev=d3b7d2bacf8bb72db63d9a25f20d489bcfc8219c)",
  "thiserror",
 ]
 
@@ -243,13 +243,13 @@ dependencies = [
 [[package]]
 name = "core-logos"
 version = "0.24.0"
-source = "git+https://github.com/LiGoldragon/core-logos.git?rev=c40045842c2322fc1e66d30b9f4ef2e1468428e5#c40045842c2322fc1e66d30b9f4ef2e1468428e5"
+source = "git+https://github.com/LiGoldragon/core-logos.git?rev=a960aacff8ed13dc14b0ae0094208189d6609434#a960aacff8ed13dc14b0ae0094208189d6609434"
 dependencies = [
  "content-identity 0.3.0",
- "content-identity 0.4.0",
+ "content-identity 0.5.0",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "name-table 0.3.0",
- "protos 0.3.0",
+ "protos 0.5.0",
  "raw-discovery 0.4.0 (git+https://github.com/LiGoldragon/raw-discovery.git?rev=7290f65bbb5e7825ab2ca58340631d154d69d110)",
  "rkyv",
  "signal-sema-translator",
@@ -317,14 +317,14 @@ dependencies = [
 [[package]]
 name = "core-nomos"
 version = "0.37.0"
-source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=afc70296b86ef9fa2b523040d24e11ade38f9d1c#afc70296b86ef9fa2b523040d24e11ade38f9d1c"
+source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=2e855607ebf4bc7f40b9328f8fbc78c59ed7926b#2e855607ebf4bc7f40b9328f8fbc78c59ed7926b"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.5.0",
  "core-ethos 0.23.0",
- "core-ethos 0.25.0 (git+https://github.com/LiGoldragon/core-ethos.git?rev=83feebbd34b66d493a0a3c7ffea68dab1dd7873c)",
+ "core-ethos 0.25.0 (git+https://github.com/LiGoldragon/core-ethos.git?rev=904dfce385ad9c7bfe0fa894267dd8815df100f4)",
  "core-logos 0.20.0",
- "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=f02ce18c93f85ce44e6e2e291a2bd514346eccbe)",
+ "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=a960aacff8ed13dc14b0ae0094208189d6609434)",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "name-table 0.3.0",
  "protos 0.4.0",
@@ -339,14 +339,14 @@ dependencies = [
 [[package]]
 name = "core-nomos"
 version = "0.37.0"
-source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=ce87da1d14b644888cf709b119995e6aab47741b#ce87da1d14b644888cf709b119995e6aab47741b"
+source = "git+https://github.com/LiGoldragon/core-nomos.git?rev=afc70296b86ef9fa2b523040d24e11ade38f9d1c#afc70296b86ef9fa2b523040d24e11ade38f9d1c"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.5.0",
  "core-ethos 0.23.0",
- "core-ethos 0.25.0 (git+https://github.com/LiGoldragon/core-ethos.git?rev=038dbeb6ba09eaa27341be9d917b5c1cb08abf72)",
+ "core-ethos 0.25.0 (git+https://github.com/LiGoldragon/core-ethos.git?rev=83feebbd34b66d493a0a3c7ffea68dab1dd7873c)",
  "core-logos 0.20.0",
- "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=c40045842c2322fc1e66d30b9f4ef2e1468428e5)",
+ "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=f02ce18c93f85ce44e6e2e291a2bd514346eccbe)",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "name-table 0.3.0",
  "protos 0.4.0",
@@ -480,13 +480,13 @@ name = "language-engine-witness"
 version = "0.22.0"
 dependencies = [
  "core-ethos 0.20.0",
- "core-ethos 0.25.0 (git+https://github.com/LiGoldragon/core-ethos.git?rev=038dbeb6ba09eaa27341be9d917b5c1cb08abf72)",
  "core-ethos 0.25.0 (git+https://github.com/LiGoldragon/core-ethos.git?rev=83feebbd34b66d493a0a3c7ffea68dab1dd7873c)",
+ "core-ethos 0.25.0 (git+https://github.com/LiGoldragon/core-ethos.git?rev=904dfce385ad9c7bfe0fa894267dd8815df100f4)",
  "core-logos 0.19.0",
- "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=c40045842c2322fc1e66d30b9f4ef2e1468428e5)",
+ "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=a960aacff8ed13dc14b0ae0094208189d6609434)",
  "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=f02ce18c93f85ce44e6e2e291a2bd514346eccbe)",
  "core-nomos 0.27.0",
- "core-nomos 0.37.0 (git+https://github.com/LiGoldragon/core-nomos.git?rev=ce87da1d14b644888cf709b119995e6aab47741b)",
+ "core-nomos 0.37.0 (git+https://github.com/LiGoldragon/core-nomos.git?rev=2e855607ebf4bc7f40b9328f8fbc78c59ed7926b)",
  "name-table 0.3.0",
  "nomos-engine 0.13.0",
  "nomos-engine 0.4.0",
@@ -495,7 +495,7 @@ dependencies = [
  "raw-discovery 0.4.0 (git+https://github.com/LiGoldragon/raw-discovery.git?rev=7290f65bbb5e7825ab2ca58340631d154d69d110)",
  "rkyv",
  "rust-logos 0.19.0",
- "rust-logos 0.27.0 (git+https://github.com/LiGoldragon/rust-logos.git?rev=6c6cfab3d558ad7c1effb91ecb83521a9d69d518)",
+ "rust-logos 0.27.0 (git+https://github.com/LiGoldragon/rust-logos.git?rev=fa4ddeb7a2554d01fa46005cd684357cb7219867)",
  "sema-engine 0.12.0",
  "sema-translator",
  "signal-domain",
@@ -633,7 +633,7 @@ dependencies = [
 [[package]]
 name = "nomos-types"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/nomos-types.git?rev=183f76c74270fa54cc0d0ad84e860c542240e957#183f76c74270fa54cc0d0ad84e860c542240e957"
+source = "git+https://github.com/LiGoldragon/nomos-types.git?rev=a7b831e0540a8ad263cd07ed44ec4c95c56771fb#a7b831e0540a8ad263cd07ed44ec4c95c56771fb"
 dependencies = [
  "rkyv",
 ]
@@ -728,7 +728,7 @@ dependencies = [
 [[package]]
 name = "protos"
 version = "0.5.0"
-source = "git+https://github.com/LiGoldragon/protos.git?rev=f5d90522da03bac51931d28ce8947b3b6b717f50#f5d90522da03bac51931d28ce8947b3b6b717f50"
+source = "git+https://github.com/LiGoldragon/protos.git?rev=95aeb1470c549a404518faf1ab0280a36583a2b3#95aeb1470c549a404518faf1ab0280a36583a2b3"
 dependencies = [
  "content-identity 0.5.0",
  "rkyv",
@@ -906,10 +906,10 @@ dependencies = [
 [[package]]
 name = "rust-logos"
 version = "0.27.0"
-source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=6c6cfab3d558ad7c1effb91ecb83521a9d69d518#6c6cfab3d558ad7c1effb91ecb83521a9d69d518"
+source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=9109c2a4e172db9cde633760fac932ece69f25f9#9109c2a4e172db9cde633760fac932ece69f25f9"
 dependencies = [
  "bs58",
- "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=c40045842c2322fc1e66d30b9f4ef2e1468428e5)",
+ "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=f02ce18c93f85ce44e6e2e291a2bd514346eccbe)",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "name-table 0.3.0",
  "prettyplease",
@@ -926,10 +926,10 @@ dependencies = [
 [[package]]
 name = "rust-logos"
 version = "0.27.0"
-source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=9109c2a4e172db9cde633760fac932ece69f25f9#9109c2a4e172db9cde633760fac932ece69f25f9"
+source = "git+https://github.com/LiGoldragon/rust-logos.git?rev=fa4ddeb7a2554d01fa46005cd684357cb7219867#fa4ddeb7a2554d01fa46005cd684357cb7219867"
 dependencies = [
  "bs58",
- "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=f02ce18c93f85ce44e6e2e291a2bd514346eccbe)",
+ "core-logos 0.24.0 (git+https://github.com/LiGoldragon/core-logos.git?rev=a960aacff8ed13dc14b0ae0094208189d6609434)",
  "name-table 0.1.0 (git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27)",
  "name-table 0.3.0",
  "prettyplease",
