@@ -16,11 +16,11 @@ interface-protos={package="protos",git="https://github.com/LiGoldragon/protos.gi
 [dev-dependencies]
 batch-nomos-engine={package="nomos-engine",git="https://github.com/LiGoldragon/nomos-engine.git",rev="39f9187cbf1b870ef169ed88595240fd304a7cea"}
 tempfile="3"
-nexus-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="904dfce385ad9c7bfe0fa894267dd8815df100f4"}
+nexus-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="5fead8cb69144f0b4bfbfa7b889c3cd32d1ce4da"}
 batch-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="f02ce18c93f85ce44e6e2e291a2bd514346eccbe"}
 nexus-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="a960aacff8ed13dc14b0ae0094208189d6609434"}
 batch-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="83feebbd34b66d493a0a3c7ffea68dab1dd7873c"}
-nexus-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="2e855607ebf4bc7f40b9328f8fbc78c59ed7926b"}
+nexus-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="f8c78ea7f310effca81397577cc52cddd2217c38"}
 nexus-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="306098361221b0f19b82156ab697134520fce8bc"}
 slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="736460fdafbd65d6500fe15e6ae8844b42a39e7c"}
 slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="9a61e2ac1bf8a8c1163794d695902115a05a4007"}

@@ -52,12 +52,7 @@ const FIXTURE_VOCABULARY: &[&str] = &[
     "Admit",
     "Refuse",
     "SignalAdmission",
-    "admit",
-    "recordDecision",
-    "Unit",
     "AgentGuardian",
-    "guard",
-    "guardReferent",
     "Integer",
     "Vector",
     "WireEnvelope",
@@ -104,7 +99,6 @@ fn grammar_ids() -> EthosGrammarIds {
         variant: universal(217),
         type_reference: universal(218),
         trait_declaration: universal(220),
-        method: universal(221),
         table: universal(222),
     })
     .expect("Universal Ethos grammar identities")
@@ -293,7 +287,7 @@ fn rust_logos() -> RustLogos {
 }
 
 #[test]
-fn untouched_nexus_ethos_generates_plain_traits_and_decisions_that_compile_and_run() {
+fn sectionless_nexus_ethos_generates_plain_traits_and_decisions_that_compile_and_run() {
     let bindings = FixtureBindings::new();
     let ethos = EthosCodec::build(grammar_ids(), bindings.priors())
         .expect("composite Ethos codec")
@@ -312,12 +306,6 @@ fn untouched_nexus_ethos_generates_plain_traits_and_decisions_that_compile_and_r
         .expect("project Nexus Logos to Rust");
     assert!(emitted.contains("pub trait SignalAdmission"), "{emitted}");
     assert!(emitted.contains("pub trait AgentGuardian"), "{emitted}");
-    assert!(
-        emitted.contains("fn admit(&self, parameter_0: Entry) -> AdmissionDecision;"),
-        "{emitted}"
-    );
-    assert!(emitted.contains("fn record_decision(&self"), "{emitted}");
-    assert!(emitted.contains("fn guard_referent("), "{emitted}");
     assert!(emitted.contains("pub enum AdmissionDecision"), "{emitted}");
     assert!(emitted.contains("pub enum GuardianDecision"), "{emitted}");
     for forbidden in ["rkyv", "derive", "archive_attr"] {
@@ -337,7 +325,7 @@ fn untouched_nexus_ethos_generates_plain_traits_and_decisions_that_compile_and_r
     fs::write(
         temporary.path().join("src/main.rs"),
         format!(
-            "pub struct Entry;\npub struct Referent;\npub struct RecordSet;\npub struct GuardianReason;\npub type Unit = ();\n{emitted}\nstruct Service;\nimpl SignalAdmission for Service {{ fn admit(&self, _entry: Entry) -> AdmissionDecision {{ AdmissionDecision::Accepted }} fn record_decision(&self, _decision: AdmissionDecision) -> Unit {{}} }}\nimpl AgentGuardian for Service {{ fn guard(&self, _entry: Entry, _records: RecordSet) -> GuardianDecision {{ GuardianDecision::Admit }} fn guard_referent(&self, _referent: Referent, _records: RecordSet) -> GuardianDecision {{ GuardianDecision::Admit }} }}\nfn main() {{ let service = Service; assert!(matches!(service.admit(Entry), AdmissionDecision::Accepted)); service.record_decision(AdmissionDecision::Accepted); assert!(matches!(service.guard(Entry, RecordSet), GuardianDecision::Admit)); assert!(matches!(service.guard_referent(Referent, RecordSet), GuardianDecision::Admit)); }}\n"
+            "pub struct Entry;\npub struct Referent;\npub struct RecordSet;\npub struct GuardianReason;\n{emitted}\nfn main() {{}}\n"
         ),
     )
     .expect("scratch generated source and behavior harness");
