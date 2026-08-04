@@ -143,6 +143,8 @@ impl FixtureBindings {
                 .expect("Universal builtins")
                 .with_application_head(self.identity("Result"))
                 .expect("Universal Result application head")
+                .with_trait_quality(self.identity("Ordered"))
+                .expect("Universal Ordered trait quality")
                 .with_stream_transformer(self.identity("Stream"))
                 .expect("Universal Stream transformer");
         for spelling in FIXTURE_VOCABULARY {
@@ -383,7 +385,7 @@ fn strict_interface_stream_initiation_defers_through_nomos_before_logos_rust_and
     );
     assert!(emitted.contains("Batch(Vec<Entry>)"), "{emitted}");
     assert!(
-        emitted.contains("pub struct WireResult(Result<Vec<Ord>, Error>);"),
+        emitted.contains("pub struct WireResult<Ordered: Ord>(Result<Vec<Ordered>, Error>);"),
         "{emitted}"
     );
 
@@ -397,7 +399,7 @@ fn strict_interface_stream_initiation_defers_through_nomos_before_logos_rust_and
     fs::write(
         temporary.path().join("src/main.rs"),
         format!(
-            "#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Entry;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Ord;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Error;\n{emitted}\nfn main() {{ let choice = WireChoice::Batch(vec![Entry]); let choice_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&choice).unwrap(); let restored_choice = rkyv::from_bytes::<WireChoice, rkyv::rancor::Error>(&choice_bytes).unwrap(); assert_eq!(restored_choice, choice); let result = WireResult(Ok(vec![Ord])); let result_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&result).unwrap(); let restored_result = rkyv::from_bytes::<WireResult, rkyv::rancor::Error>(&result_bytes).unwrap(); assert_eq!(restored_result, result); }}\n"
+            "#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Entry;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]\npub struct Ordered;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Error;\n{emitted}\nfn main() {{ let choice = WireChoice::Batch(vec![Entry]); let choice_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&choice).unwrap(); let restored_choice = rkyv::from_bytes::<WireChoice, rkyv::rancor::Error>(&choice_bytes).unwrap(); assert_eq!(restored_choice, choice); let result = WireResult::<Ordered>(Ok(vec![Ordered])); let result_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&result).unwrap(); let restored_result = rkyv::from_bytes::<WireResult<Ordered>, rkyv::rancor::Error>(&result_bytes).unwrap(); assert_eq!(restored_result, result); }}\n"
         ),
     )
     .expect("scratch generated wire source");
