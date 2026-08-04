@@ -455,6 +455,11 @@ fn strict_interface_stream_lowers_through_nomos_logos_and_rust_without_deferral(
         "[package]\nname = \"interface-wire-slice\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n[features]\nnota-text = []\n\n[dependencies]\nrkyv = { version = \"0.8\", default-features = false, features = [\"std\", \"bytecheck\", \"little_endian\", \"pointer_width_32\", \"unaligned\"] }\nprotos = { git = \"https://github.com/LiGoldragon/protos.git\", rev = \"95aeb1470c549a404518faf1ab0280a36583a2b3\" }\n",
     )
     .expect("scratch manifest with the wire archive contract");
+    fs::copy(
+        format!("{}/Cargo.lock", env!("CARGO_MANIFEST_DIR")),
+        temporary.path().join("Cargo.lock"),
+    )
+    .expect("scratch lockfile with the pinned Protos source");
     let runtime = r#"
 use std::collections::{BTreeMap, VecDeque};
 use protos::{StreamEvent as _, StreamOpen as _};
