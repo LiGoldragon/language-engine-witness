@@ -4,6 +4,7 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+use batch_core_ethos::{EthosDecodeError, WholeEthosFileKind};
 use batch_core_logos::WholeLogosItem;
 use batch_nomos_engine::batch::{
     BatchConfiguration, BatchGenerationError, DeferredBatchConstruct, OfflineBatchConfiguration,
@@ -14,7 +15,6 @@ use language_engine_witness::{
     BUILD_SCRIPT_NEXUS_RUST, BUILD_SCRIPT_SEMA_OUTCOME, BUILD_SCRIPT_SEMA_RUST,
     exercise_build_script_interface, exercise_build_script_sema,
 };
-use nexus_core_ethos::{EthosDecodeError, WholeEthosFileKind};
 use nexus_rust_logos::RustEncodedIdCodec;
 use sema_engine::{
     Assertion, Engine, EngineOpen, EngineRecord, Error as SemaError, FamilyName, RecordKey,

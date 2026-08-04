@@ -9,20 +9,22 @@ use nexus_core_ethos::{
 };
 use nexus_core_logos::{WholeLogos, WholeLogosItem, WholeLogosTypeAttributes};
 use nexus_core_nomos::{
-    InterfaceTypeStructuralTransformation, NexusStructuralTransformation, NexusTransformation,
+    InterfaceRoleIdentities, InterfaceStructuralTransformation, NexusStructuralTransformation,
+    NexusTransformation,
 };
 use nexus_rust_logos::{
     FixtureRustEmittedIdentifier, FixtureRustNameProjectionTable, FixtureRustVocabulary,
     FixtureRustVocabularyIds, RustLogos,
 };
+use nexus_structural_codec::{
+    DeclarationAssignment, DecodeNameBindings, EncodedNameResolver as NexusEncodedNameResolver,
+    NameOccurrence, ResolvedReference,
+};
 use slice_name_table::{LocalEncodedId, Name};
 use slice_signal_sema_translator::{VocabularyEncodedId, VocabularyRoot};
-use slice_structural_codec::{
-    DeclarationAssignment, DecodeNameBindings, EncodedNameResolver, NameOccurrence,
-    ResolvedReference,
-};
+use slice_structural_codec::EncodedNameResolver as RustEncodedNameResolver;
 
-const NEXUS_SOURCE: &str = include_str!("fixtures/nexus.ethos");
+const NEXUS_SOURCE: &str = include_str!("fixtures/nexus-strict.ethos");
 const INTERFACE_TYPE_SOURCE: &str = r#"Interface.1
 []
 {
@@ -31,8 +33,10 @@ const INTERFACE_TYPE_SOURCE: &str = r#"Interface.1
   []
   [
     WireEnvelope.Entry
-    WireProduct.{Entry Vector.Entry}
-    WireChoice.[Empty Batch.Vector.Entry]
+    WireProduct.{Entry Vector<Entry>}
+    WireChoice.[Empty Batch.Vector<Entry>]
+    WireResult.Result<Vector<Ordered> Error>
+    Observer.Stream.(WireEnvelope WireProduct WireChoice)
   ]
 }
 "#;
@@ -59,8 +63,14 @@ const FIXTURE_VOCABULARY: &[&str] = &[
     "WireEnvelope",
     "WireProduct",
     "WireChoice",
+    "WireResult",
     "Empty",
     "Batch",
+    "Result",
+    "Ordered",
+    "Error",
+    "Observer",
+    "Stream",
 ];
 
 fn encoded(root: VocabularyRoot, local: u16) -> VocabularyEncodedId {
@@ -93,7 +103,6 @@ fn grammar_ids() -> EthosGrammarIds {
         item: universal(216),
         variant: universal(217),
         type_reference: universal(218),
-        operator_payload: universal(219),
         trait_declaration: universal(220),
         method: universal(221),
         table: universal(222),
@@ -131,7 +140,11 @@ impl FixtureBindings {
     fn priors(&self) -> WholeEthosBuiltinPriors {
         let mut priors =
             WholeEthosBuiltinPriors::new(self.identity("Integer"), self.identity("Vector"))
-                .expect("Universal builtins");
+                .expect("Universal builtins")
+                .with_application_head(self.identity("Result"))
+                .expect("Universal Result application head")
+                .with_stream_transformer(self.identity("Stream"))
+                .expect("Universal Stream transformer");
         for spelling in FIXTURE_VOCABULARY {
             priors = priors
                 .with_identity(self.identity(spelling))
@@ -159,7 +172,7 @@ impl FixtureBindings {
     }
 }
 
-impl EncodedNameResolver<VocabularyRoot> for FixtureBindings {
+impl NexusEncodedNameResolver<VocabularyRoot> for FixtureBindings {
     fn resolve(&self, encoded_id: &VocabularyEncodedId) -> Option<&Name> {
         self.spellings.get(encoded_id)
     }
@@ -196,7 +209,7 @@ impl RustVocabularyNames {
     }
 }
 
-impl EncodedNameResolver<VocabularyRoot> for RustVocabularyNames {
+impl RustEncodedNameResolver<VocabularyRoot> for RustVocabularyNames {
     fn resolve(&self, encoded_id: &VocabularyEncodedId) -> Option<&Name> {
         self.0.get(encoded_id)
     }
@@ -311,22 +324,44 @@ fn untouched_nexus_ethos_generates_plain_traits_and_decisions_that_compile_and_r
 }
 
 #[test]
-fn interface_shared_types_carry_wire_attributes_through_canonical_logos_to_rust() {
+fn strict_interface_stream_initiation_defers_through_nomos_before_logos_rust_and_execution() {
     let bindings = FixtureBindings::new();
     let ethos = EthosCodec::build(grammar_ids(), bindings.priors())
         .expect("composite Ethos codec")
         .decode(INTERFACE_TYPE_SOURCE, &bindings)
         .expect("current Interface type syntax decodes");
-    let logos = NexusTransformation::new()
-        .lower_interface_types(ethos.ethos())
-        .expect("lower Interface shared types only");
-    assert_eq!(logos.items().len(), 3);
+    let outcome = NexusTransformation::new()
+        .lower_interface(
+            ethos.ethos(),
+            &InterfaceRoleIdentities::new(universal(300), universal(301), universal(302))
+                .expect("distinct Interface role identities"),
+        )
+        .expect("lower Interface declarations and strict stream initiation");
+    assert_eq!(outcome.deferred_stream_initiations().len(), 1);
+    let initiation = &outcome.deferred_stream_initiations()[0];
+    assert_eq!(initiation.stream, bindings.identity("Observer"));
+    assert_eq!(
+        initiation.query,
+        nexus_core_ethos::WholeEthosTypeReference::Identity(bindings.identity("WireEnvelope"))
+    );
+    assert_eq!(
+        initiation.subscription,
+        nexus_core_ethos::WholeEthosTypeReference::Identity(bindings.identity("WireProduct"))
+    );
+    assert_eq!(
+        initiation.event,
+        nexus_core_ethos::WholeEthosTypeReference::Identity(bindings.identity("WireChoice"))
+    );
+    let logos = outcome.logos();
+    assert_eq!(logos.items().len(), 4);
     for item in logos.items() {
         let attributes = match item {
             WholeLogosItem::Newtype(item) => item.attributes(),
             WholeLogosItem::Struct(item) => item.attributes(),
             WholeLogosItem::Enumeration(item) => item.attributes(),
-            WholeLogosItem::TraitDef(_) | WholeLogosItem::TraitImpl(_) => {
+            WholeLogosItem::TraitDef(_)
+            | WholeLogosItem::TraitImpl(_)
+            | WholeLogosItem::Table(_) => {
                 panic!("Interface shared types contain declarations only")
             }
         };
@@ -334,19 +369,23 @@ fn interface_shared_types_carry_wire_attributes_through_canonical_logos_to_rust(
     }
     let archived = logos.to_archive_bytes().expect("archive Interface Logos");
     let restored = WholeLogos::from_archive_bytes(&archived).expect("restore Interface Logos");
-    assert_eq!(restored, logos);
+    assert_eq!(&restored, logos);
 
     let emitted = rust_logos()
         .emit_fixture(&restored, &bindings.rust_projections())
         .expect("project wire-attributed Logos to Rust");
-    assert_eq!(emitted.matches("#[rustfmt::skip]").count(), 3, "{emitted}");
-    assert_eq!(emitted.matches("rkyv::Archive").count(), 3, "{emitted}");
+    assert_eq!(emitted.matches("#[rustfmt::skip]").count(), 4, "{emitted}");
+    assert_eq!(emitted.matches("rkyv::Archive").count(), 4, "{emitted}");
     assert_eq!(
         emitted.matches("nota::NotaDecodeTraced").count(),
-        3,
+        4,
         "{emitted}"
     );
     assert!(emitted.contains("Batch(Vec<Entry>)"), "{emitted}");
+    assert!(
+        emitted.contains("pub struct WireResult(Result<Vec<Ord>, Error>);"),
+        "{emitted}"
+    );
 
     let temporary = tempfile::tempdir().expect("scratch crate directory");
     fs::create_dir(temporary.path().join("src")).expect("scratch source directory");
@@ -358,7 +397,7 @@ fn interface_shared_types_carry_wire_attributes_through_canonical_logos_to_rust(
     fs::write(
         temporary.path().join("src/main.rs"),
         format!(
-            "#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Entry;\n{emitted}\nfn main() {{ let value = WireChoice::Batch(vec![Entry]); let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&value).unwrap(); let restored = rkyv::from_bytes::<WireChoice, rkyv::rancor::Error>(&bytes).unwrap(); assert_eq!(restored, value); }}\n"
+            "#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Entry;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Ord;\n#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]\npub struct Error;\n{emitted}\nfn main() {{ let choice = WireChoice::Batch(vec![Entry]); let choice_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&choice).unwrap(); let restored_choice = rkyv::from_bytes::<WireChoice, rkyv::rancor::Error>(&choice_bytes).unwrap(); assert_eq!(restored_choice, choice); let result = WireResult(Ok(vec![Ord])); let result_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&result).unwrap(); let restored_result = rkyv::from_bytes::<WireResult, rkyv::rancor::Error>(&result_bytes).unwrap(); assert_eq!(restored_result, result); }}\n"
         ),
     )
     .expect("scratch generated wire source");
