@@ -9,7 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nomos-engine = {
-      url = "github:LiGoldragon/nomos-engine/318808217e62ee3351b31dba6348f3fe93cc18b6";
+      url = "github:LiGoldragon/nomos-engine/7b43a53ffbf5175eddf2224780bd9c26ed845e20";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
       inputs.rust-build.follows = "rust-build";
@@ -24,7 +24,7 @@
       flake = false;
     };
     spirit-ethos = {
-      url = "github:LiGoldragon/spirit-ethos/6679d201aaa35a6aa198ad129f5e4a1cfa60faf1";
+      url = "github:LiGoldragon/spirit-ethos/5bafccefe32c4b6d9b4587b97806384a57e848b7";
       flake = false;
     };
   };

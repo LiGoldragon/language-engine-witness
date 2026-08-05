@@ -1,0 +1,29 @@
+{
+  "migrations": {
+    "family": "MigrationsFamily",
+    "migration_align": 8,
+    "migration_hex": "0e000000000000000100000000000000",
+    "migration_size": 16,
+    "schema_hash": "e6fd9ad857e30d8d5210cb6caa8f45578fbfea195aa84bb6ee8600e59e18148f",
+    "source_schema_version_align": 8,
+    "source_schema_version_hex": "0e00000000000000",
+    "source_schema_version_size": 8,
+    "table": "migrations"
+  },
+  "records": {
+    "entry_align": 8,
+    "entry_hex": "170200007072657365727665642063757272656e742d763134207265636f7264e0ffffff01000000009c000000dbffffff04",
+    "entry_size": 56,
+    "family": "RecordsFamily",
+    "record_identifier_align": 8,
+    "record_identifier_hex": "7072657365727665642d63757272656e742d7631342d7265636f72649c000000e4ffffff",
+    "record_identifier_size": 24,
+    "schema_hash": "a9a71bcb719e0c71595dc3a686d02228b226cb8b9bd16c650cb7b4e90654e6b1",
+    "stored_record_align": 8,
+    "stored_record_hex": "7072657365727665642d63757272656e742d7631342d7265636f7264170200007072657365727665642063757272656e742d763134207265636f72649c000000c4ffffffd8ffffff01000000009c000000d3ffffff04",
+    "stored_record_size": 80,
+    "table": "records"
+  },
+  "source_revision": "7405eee89e3b1b5b6764eb1a50cbdf467b93c9a7",
+  "store_schema_version": 14
+}
