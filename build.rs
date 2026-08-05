@@ -3,66 +3,59 @@ use std::fs;
 use std::path::PathBuf;
 
 use batch_nomos_engine::batch::{
-    BatchConfiguration, BatchOutcomeReporting, DeferredBatchConstruct, OfflineBatchConfiguration,
+    BatchComponent, BatchConfiguration, BatchOutcomeReporting, OfflineBatchConfiguration,
     OfflineBatchGeneration,
 };
 
 type AnyError = Box<dyn std::error::Error + Send + Sync>;
 
-fn main() -> Result<(), AnyError> {
-    println!("cargo:rerun-if-changed=tests/fixtures/batch-config.json");
-    println!("cargo:rerun-if-changed=tests/fixtures/nexus.ethos");
-    println!("cargo:rerun-if-changed=tests/fixtures/interface.ethos");
-    println!("cargo:rerun-if-changed=tests/fixtures/sema.ethos");
+fn source_root() -> Result<PathBuf, AnyError> {
+    env::var_os("SPIRIT_ETHOS_SOURCE")
+        .map(PathBuf::from)
+        .ok_or_else(|| "SPIRIT_ETHOS_SOURCE must name the sealed spirit-ethos revision".into())
+}
 
-    let manifest = PathBuf::from(
-        env::var_os("CARGO_MANIFEST_DIR")
-            .ok_or("Cargo did not supply CARGO_MANIFEST_DIR to the batch witness build script")?,
-    );
+fn main() -> Result<(), AnyError> {
+    println!("cargo:rerun-if-env-changed=SPIRIT_ETHOS_SOURCE");
+    let source = source_root()?;
+    for file in [
+        "batch-config.json",
+        "allocation-manifest.nota",
+        "allocation-receipt.nota",
+        "interface.ethos",
+        "nexus.ethos",
+        "sema.ethos",
+    ] {
+        println!("cargo:rerun-if-changed={}", source.join(file).display());
+    }
+
     let output = PathBuf::from(
         env::var_os("OUT_DIR")
-            .ok_or("Cargo did not supply OUT_DIR to the batch witness build script")?,
+            .ok_or("Cargo did not supply OUT_DIR to the strict batch witness build script")?,
     );
-    let configuration = fs::read_to_string(manifest.join("tests/fixtures/batch-config.json"))?;
+    let configuration = fs::read_to_string(source.join("batch-config.json"))?;
+    let interface = fs::read_to_string(source.join("interface.ethos"))?;
+    let nexus = fs::read_to_string(source.join("nexus.ethos"))?;
+    let sema = fs::read_to_string(source.join("sema.ethos"))?;
     let generator = BatchConfiguration::from_json(&configuration)?.prepare()?;
-    let nexus = generator.generate(&fs::read_to_string(
-        manifest.join("tests/fixtures/nexus.ethos"),
-    )?)?;
-    if !nexus.deferred().is_empty() {
-        return Err("Nexus build-script generation unexpectedly deferred constructs".into());
-    }
-    fs::write(output.join("build-script-nexus.rs"), nexus.rust())?;
-    fs::write(output.join("build-script-nexus.outcome"), nexus.report())?;
+    let outcomes = generator.generate_bundle(&[
+        BatchComponent::named("interface", &interface),
+        BatchComponent::named("nexus", &nexus),
+        BatchComponent::named("sema", &sema),
+    ])?;
 
-    let interface = generator.generate(&fs::read_to_string(
-        manifest.join("tests/fixtures/interface.ethos"),
-    )?)?;
-    if interface.deferred().len() != 2
-        || !interface.deferred().iter().all(|construct| {
-            matches!(
-                construct,
-                DeferredBatchConstruct::InterfaceOperatorApplication { .. }
-            )
-        })
-    {
-        return Err(
-            "Interface build-script generation did not defer exactly two operator applications"
-                .into(),
-        );
+    for outcome in outcomes {
+        let (rust_name, report_name) = match outcome.kind().spelling() {
+            "Interface" => (
+                "build-script-interface.rs",
+                "build-script-interface.outcome",
+            ),
+            "Nexus" => ("build-script-nexus.rs", "build-script-nexus.outcome"),
+            "Sema" => ("build-script-sema.rs", "build-script-sema.outcome"),
+            unexpected => return Err(format!("unexpected generated file kind {unexpected}").into()),
+        };
+        fs::write(output.join(rust_name), outcome.rust())?;
+        fs::write(output.join(report_name), outcome.report())?;
     }
-    fs::write(output.join("build-script-interface.rs"), interface.rust())?;
-    fs::write(
-        output.join("build-script-interface.outcome"),
-        interface.report(),
-    )?;
-
-    let sema = generator.generate(&fs::read_to_string(
-        manifest.join("tests/fixtures/sema.ethos"),
-    )?)?;
-    if !sema.deferred().is_empty() {
-        return Err("Sema build-script generation unexpectedly deferred constructs".into());
-    }
-    fs::write(output.join("build-script-sema.rs"), sema.rust())?;
-    fs::write(output.join("build-script-sema.outcome"), sema.report())?;
     Ok(())
 }

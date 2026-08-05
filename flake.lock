@@ -120,17 +120,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1785723488,
-        "narHash": "sha256-MyZczfjacWiTL0x3Xgt0v/iup9GaTvKfVtN78tlP0aA=",
+        "lastModified": 1785922833,
+        "narHash": "sha256-wI3m7RwQImxtnoucv6uZ1jfK4V4f8d2/OvPMb8Ebl9E=",
         "owner": "LiGoldragon",
         "repo": "nomos-engine",
-        "rev": "39f9187cbf1b870ef169ed88595240fd304a7cea",
+        "rev": "318808217e62ee3351b31dba6348f3fe93cc18b6",
         "type": "github"
       },
       "original": {
         "owner": "LiGoldragon",
         "repo": "nomos-engine",
-        "rev": "39f9187cbf1b870ef169ed88595240fd304a7cea",
+        "rev": "318808217e62ee3351b31dba6348f3fe93cc18b6",
         "type": "github"
       }
     },
@@ -141,7 +141,8 @@
         "nomos-engine": "nomos-engine",
         "rust-build": "rust-build",
         "sema-translator": "sema-translator",
-        "signal-domain-source": "signal-domain-source"
+        "signal-domain-source": "signal-domain-source",
+        "spirit-ethos": "spirit-ethos"
       }
     },
     "rust-analyzer-src": {
@@ -223,6 +224,23 @@
         "owner": "LiGoldragon",
         "repo": "signal-domain",
         "rev": "c24059de43614e6fb2128e47f959dc11748bd7e7",
+        "type": "github"
+      }
+    },
+    "spirit-ethos": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785923832,
+        "narHash": "sha256-WnAn05stxA5fzSgMj4kq1PI+0okz/V6l6b33ct30Nsw=",
+        "owner": "LiGoldragon",
+        "repo": "spirit-ethos",
+        "rev": "6679d201aaa35a6aa198ad129f5e4a1cfa60faf1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "LiGoldragon",
+        "repo": "spirit-ethos",
+        "rev": "6679d201aaa35a6aa198ad129f5e4a1cfa60faf1",
         "type": "github"
       }
     },

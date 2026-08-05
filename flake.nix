@@ -9,7 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nomos-engine = {
-      url = "github:LiGoldragon/nomos-engine/39f9187cbf1b870ef169ed88595240fd304a7cea";
+      url = "github:LiGoldragon/nomos-engine/318808217e62ee3351b31dba6348f3fe93cc18b6";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
       inputs.rust-build.follows = "rust-build";
@@ -23,9 +23,13 @@
       url = "github:LiGoldragon/signal-domain/c24059de43614e6fb2128e47f959dc11748bd7e7";
       flake = false;
     };
+    spirit-ethos = {
+      url = "github:LiGoldragon/spirit-ethos/6679d201aaa35a6aa198ad129f5e4a1cfa60faf1";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-build, nomos-engine, sema-translator, signal-domain-source }:
+  outputs = { self, nixpkgs, flake-utils, rust-build, nomos-engine, sema-translator, signal-domain-source, spirit-ethos }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -33,7 +37,11 @@
         inherit (rust) craneLib toolchain;
         # The acceptance fixture is an .ethos file; preserve non-Rust test data.
         src = pkgs.lib.cleanSource ./.;
-        commonArguments = { inherit src; strictDeps = true; };
+        commonArguments = {
+          inherit src;
+          strictDeps = true;
+          SPIRIT_ETHOS_SOURCE = spirit-ethos;
+        };
         cargoArtifacts = craneLib.buildDepsOnly commonArguments;
         processTestArguments = {
           nativeBuildInputs = [
@@ -63,20 +71,13 @@
             cmp ${signal-domain-source}/schema/domain.schema ${./tests/fixtures/spirit-domain.ethos}
             touch $out
           '';
-          offline-generator = pkgs.runCommand "offline-generator" {
-            nativeBuildInputs = [ nomos-engine.packages.${system}.default ];
-          } ''
-            mkdir -p $out
-            nomos-generate ${./tests/fixtures/batch-config.json} ${./tests/fixtures/interface.ethos} $out/interface.rs $out/interface.outcome
-            nomos-generate ${./tests/fixtures/batch-config.json} ${./tests/fixtures/nexus.ethos} $out/nexus.rs $out/nexus.outcome
-            nomos-generate ${./tests/fixtures/batch-config.json} ${./tests/fixtures/sema.ethos} $out/sema.rs $out/sema.outcome
-            test -s $out/interface.rs
-            test -s $out/nexus.rs
-            test -s $out/sema.rs
-            grep -q '^deferred 2$' $out/interface.outcome
-            grep -q '^deferred 0$' $out/nexus.outcome
-            grep -q '^deferred 0$' $out/sema.outcome
-            test "$(grep -c 'impl sema_engine::TableSpecification for' $out/sema.rs)" -eq 3
+          sealed-spirit-source = pkgs.runCommand "sealed-spirit-source" { } ''
+            test -f ${spirit-ethos}/allocation-manifest.nota
+            test -f ${spirit-ethos}/allocation-receipt.nota
+            test -f ${spirit-ethos}/batch-config.json
+            grep -Fx 'universal Entry 29' ${spirit-ethos}/allocation-manifest.nota
+            grep -Fx 'database-marker commit-sequence=2 snapshot=2' ${spirit-ethos}/allocation-receipt.nota
+            touch $out
           '';
         };
         devShells.default = pkgs.mkShell {
