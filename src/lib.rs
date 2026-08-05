@@ -48,6 +48,12 @@ pub mod generated_interface {
     pub fn preserved_v14_record_identifier() -> z2VKoA {
         z2VKoA("preserved-current-v14-record".to_owned())
     }
+
+    /// A distinct generated key used to prove a reopened adopted store accepts
+    /// new records as well as its frozen current-v14 row.
+    pub fn generated_after_v14_reopen_record_identifier() -> z2VKoA {
+        z2VKoA("generated-after-current-v14-reopen".to_owned())
+    }
 }
 
 #[allow(dead_code, non_camel_case_types)]
@@ -64,6 +70,15 @@ pub mod generated_sema {
     pub fn preserved_v14_stored_record() -> z2VKoT {
         z2VKoT {
             field_0: crate::generated_interface::preserved_v14_record_identifier(),
+            field_1: crate::generated_interface::preserved_v14_entry(),
+        }
+    }
+
+    /// A fresh generated record with a key not present in the frozen v14
+    /// fixture, written after the adopted store has been reopened.
+    pub fn generated_after_v14_reopen_stored_record() -> z2VKoT {
+        z2VKoT {
+            field_0: crate::generated_interface::generated_after_v14_reopen_record_identifier(),
             field_1: crate::generated_interface::preserved_v14_entry(),
         }
     }

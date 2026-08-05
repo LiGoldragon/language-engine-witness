@@ -9,7 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nomos-engine = {
-      url = "github:LiGoldragon/nomos-engine/7b43a53ffbf5175eddf2224780bd9c26ed845e20";
+      url = "github:LiGoldragon/nomos-engine/c20a1a2af92d344ed2568a0d40b91c13ab6b51a3";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
       inputs.rust-build.follows = "rust-build";
@@ -51,6 +51,10 @@
           NOMOS_ENGINE_BIN = "${nomos-engine.packages.${system}.default}/bin/nomos-engine";
           NOMOS_GENERATOR_BIN = "${nomos-engine.packages.${system}.default}/bin/nomos-generate";
           SEMA_TRANSLATOR_BIN = "${sema-translator.packages.${system}.default}/bin/sema-translator-daemon";
+          # The isolated pinned-current-v14 fixture is a separate locked Cargo
+          # graph whose Git sources cannot be fetched inside a Nix sandbox.
+          # The ordinary, unsandboxed strict test executes that reader.
+          SPIRIT_V14_READER_CARGO_UNAVAILABLE = "nix-network-sandbox";
         };
       in
       {

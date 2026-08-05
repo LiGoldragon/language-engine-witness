@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::mem::{align_of, size_of};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use batch_nomos_engine::batch::{
     BatchComponent, BatchConfiguration, OfflineBatchConfiguration, OfflineBatchGeneration,
@@ -113,6 +114,39 @@ fn fixture_usize(value: &serde_json::Value, section: &str, field: &str) -> usize
         .as_u64()
         .unwrap_or_else(|| panic!("frozen current-v14 fixture lacks {section}.{field}"))
         as usize
+}
+
+fn frozen_current_v14_store(value: &serde_json::Value) -> Vec<u8> {
+    let encoded = value["records"]["store_run_length"]
+        .as_str()
+        .expect("frozen current-v14 store run-length fixture");
+    let mut bytes = Vec::new();
+    for token in encoded.split_terminator(';') {
+        let (kind, payload) = token.split_at(1);
+        match kind {
+            "r" => {
+                let (byte, count) = payload
+                    .split_once(':')
+                    .expect("run-length fixture repeats separate byte and count");
+                let byte = u8::from_str_radix(byte, 16).expect("run-length fixture repeated byte");
+                let count = count
+                    .parse::<usize>()
+                    .expect("run-length fixture repeated byte count");
+                bytes.extend(std::iter::repeat_n(byte, count));
+            }
+            "b" => {
+                assert_eq!(payload.len() % 2, 0, "run-length fixture raw hex length");
+                for index in (0..payload.len()).step_by(2) {
+                    bytes.push(
+                        u8::from_str_radix(&payload[index..index + 2], 16)
+                            .expect("run-length fixture raw byte"),
+                    );
+                }
+            }
+            _ => panic!("unknown frozen current-v14 fixture token {kind:?}"),
+        }
+    }
+    bytes
 }
 
 macro_rules! archived_bytes {
@@ -236,6 +270,12 @@ fn frozen_current_v14_archives_cross_restore_the_generated_bundle() {
         generated_interface::preserved_v14_record_identifier()
     );
     assert_eq!(archived_bytes!(record_identifier), record_identifier_bytes);
+    assert_eq!(
+        <generated_sema::z2VKoj as TableSpecification>::record_key(&record_identifier)
+            .expect("derive exact declared RecordIdentifier index key")
+            .to_owned_string(),
+        "preserved-current-v14-record"
+    );
 
     let entry = rkyv::from_bytes::<generated_interface::z2VKmn, rkyv::rancor::Error>(&entry_bytes)
         .expect("current-v14 Entry bytes restore generated Entry closure");
@@ -260,6 +300,117 @@ fn frozen_current_v14_archives_cross_restore_the_generated_bundle() {
         archived_bytes!(source_schema_version),
         source_schema_version_bytes
     );
+    assert_eq!(
+        <generated_sema::z2VKoi as TableSpecification>::record_key(&source_schema_version)
+            .expect("derive exact declared SourceSchemaVersion index key")
+            .to_owned_string(),
+        "14"
+    );
+
+    // The archived store is made by the isolated pinned-current-v14 producer:
+    // it registered the current descriptors, imported the frozen record,
+    // looked it up, closed, and reopened before its bytes were retained here.
+    // The fresh generated descriptors must now open that same store, find the
+    // frozen record, write a distinct generated record, and find both after a
+    // second close/reopen.
+    let fixture_temporary = tempfile::tempdir().expect("create frozen current-v14 store sandbox");
+    let fixture_path = fixture_temporary.path().join("current-v14.sema");
+    fs::write(&fixture_path, frozen_current_v14_store(&fixture))
+        .expect("materialize frozen current-v14 Sema store");
+    let frozen_key = generated_interface::preserved_v14_record_identifier();
+    let frozen_record = generated_sema::preserved_v14_stored_record();
+    let generated_key = generated_interface::generated_after_v14_reopen_record_identifier();
+    let generated_record = generated_sema::generated_after_v14_reopen_stored_record();
+    {
+        let mut adopted = SemaEngine::open(EngineOpen::new(&fixture_path, SchemaVersion::new(14)))
+            .expect("open frozen current-v14 store with generated descriptors");
+        adopted
+            .register_table(<generated_sema::z2VKoj as TableSpecification>::descriptor())
+            .expect("adopt frozen current-v14 records descriptor");
+        adopted
+            .register_table(<generated_sema::z2VKoi as TableSpecification>::descriptor())
+            .expect("adopt frozen current-v14 migrations descriptor");
+        let frozen = adopted
+            .match_records(
+                <generated_sema::z2VKoj as TableSpecification>::query(&frozen_key)
+                    .expect("derive generated lookup for frozen v14 record"),
+            )
+            .expect("look up frozen current-v14 record with generated descriptor");
+        assert_eq!(frozen.records(), std::slice::from_ref(&frozen_record));
+        adopted
+            .assert_keyed(
+                <generated_sema::z2VKoj as TableSpecification>::assertion(
+                    &generated_key,
+                    generated_record.clone(),
+                )
+                .expect("derive generated post-adoption assertion"),
+            )
+            .expect("write generated record into adopted current-v14 store");
+    }
+    let mut adopted = SemaEngine::open(EngineOpen::new(&fixture_path, SchemaVersion::new(14)))
+        .expect("reopen adopted current-v14 store");
+    adopted
+        .register_table(<generated_sema::z2VKoj as TableSpecification>::descriptor())
+        .expect("re-register adopted current-v14 records descriptor");
+    adopted
+        .register_table(<generated_sema::z2VKoi as TableSpecification>::descriptor())
+        .expect("re-register adopted current-v14 migrations descriptor");
+    let frozen = adopted
+        .match_records(
+            <generated_sema::z2VKoj as TableSpecification>::query(&frozen_key)
+                .expect("derive generated post-reopen frozen lookup"),
+        )
+        .expect("look up frozen current-v14 record after adopted reopen");
+    assert_eq!(frozen.records(), &[frozen_record]);
+    let generated = adopted
+        .match_records(
+            <generated_sema::z2VKoj as TableSpecification>::query(&generated_key)
+                .expect("derive generated post-reopen new-record lookup"),
+        )
+        .expect("look up generated post-adoption record after reopen");
+    assert_eq!(generated.records(), &[generated_record]);
+    drop(adopted);
+
+    // The generated writer must also remain visible to the exact pinned v14
+    // reader, not merely to a second generated engine.  This runs in the
+    // isolated historical Cargo graph so incompatible native domain crates
+    // cannot silently collapse into one dependency graph.
+    match std::env::var("SPIRIT_V14_READER_CARGO_UNAVAILABLE") {
+        Ok(reason) => assert_eq!(
+            reason, "nix-network-sandbox",
+            "only the Nix network sandbox may defer the isolated pinned-reader run"
+        ),
+        Err(std::env::VarError::NotPresent) => {
+            let fixture_crate = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("tests")
+                .join("current-v14-fixture");
+            let pinned_reader = Command::new("cargo")
+                .args(["run", "--locked", "--quiet"])
+                .current_dir(fixture_crate)
+                .env(
+                    "CARGO_TARGET_DIR",
+                    fixture_temporary.path().join("pinned-v14-reader-target"),
+                )
+                .env("SPIRIT_V14_REOPEN_STORE", &fixture_path)
+                .output()
+                .expect("run isolated pinned current-v14 reader");
+            if !pinned_reader.status.success() {
+                assert_eq!(
+                    pinned_reader.status.code(),
+                    Some(42),
+                    "pinned current-v14 reader stdout:\n{}\nstderr:\n{}",
+                    String::from_utf8_lossy(&pinned_reader.stdout),
+                    String::from_utf8_lossy(&pinned_reader.stderr),
+                );
+                assert!(
+                    String::from_utf8_lossy(&pinned_reader.stderr)
+                        .contains("pinned-v14-reader-api-unavailable: open generated store"),
+                    "the pinned reader may skip only for its explicit storage-layout API boundary"
+                );
+            }
+        }
+        Err(error) => panic!("read isolated pinned-reader availability control: {error}"),
+    }
 
     // Register, write, reopen, and query the generated tables.  This proves
     // that the fresh store uses the exact v14 physical descriptors rather
@@ -268,6 +419,8 @@ fn frozen_current_v14_archives_cross_restore_the_generated_bundle() {
     let path = temporary.path().join("generated-current-v14.sema");
     let fresh_key = generated_interface::preserved_v14_record_identifier();
     let fresh_record = generated_sema::preserved_v14_stored_record();
+    let fresh_migration_key = generated_sema::preserved_v14_source_schema_version();
+    let fresh_migration = generated_sema::preserved_v14_migration();
     {
         let mut store = SemaEngine::open(EngineOpen::new(&path, SchemaVersion::new(14)))
             .expect("open fresh generated Sema store");
@@ -286,6 +439,15 @@ fn frozen_current_v14_archives_cross_restore_the_generated_bundle() {
                 .expect("derive generated records assertion"),
             )
             .expect("write generated current-v14 record");
+        store
+            .assert_keyed(
+                <generated_sema::z2VKoi as TableSpecification>::assertion(
+                    &fresh_migration_key,
+                    fresh_migration.clone(),
+                )
+                .expect("derive generated SourceSchemaVersion assertion"),
+            )
+            .expect("write generated current-v14 migration");
     }
     let mut reopened = SemaEngine::open(EngineOpen::new(&path, SchemaVersion::new(14)))
         .expect("reopen fresh generated Sema store");
@@ -302,6 +464,13 @@ fn frozen_current_v14_archives_cross_restore_the_generated_bundle() {
         )
         .expect("look up generated current-v14 record after reopen");
     assert_eq!(found.records(), &[fresh_record]);
+    let found_migration = reopened
+        .match_records(
+            <generated_sema::z2VKoi as TableSpecification>::query(&fresh_migration_key)
+                .expect("derive generated SourceSchemaVersion lookup"),
+        )
+        .expect("look up generated migration after reopen");
+    assert_eq!(found_migration.records(), &[fresh_migration]);
 }
 
 struct Bindings {

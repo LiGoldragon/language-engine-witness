@@ -22,7 +22,6 @@ use nexus_structural_codec::{
 };
 use slice_name_table::{LocalEncodedId, Name};
 use slice_signal_sema_translator::{VocabularyEncodedId, VocabularyRoot};
-use slice_structural_codec::EncodedNameResolver as RustEncodedNameResolver;
 
 const NEXUS_SOURCE: &str = include_str!("fixtures/nexus-strict.ethos");
 const INTERFACE_TYPE_SOURCE: &str = r#"Interface.1
@@ -241,7 +240,7 @@ impl RustVocabularyNames {
     }
 }
 
-impl RustEncodedNameResolver<VocabularyRoot> for RustVocabularyNames {
+impl NexusEncodedNameResolver<VocabularyRoot> for RustVocabularyNames {
     fn resolve(&self, encoded_id: &VocabularyEncodedId) -> Option<&Name> {
         self.0.get(encoded_id)
     }
