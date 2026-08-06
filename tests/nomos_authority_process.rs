@@ -8,27 +8,19 @@ use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
-use nomos_engine::{EngineEthosNameTree, EngineLogosNameTree, encode_ethos_population};
 use signal_nomos::{
-    DeployOutcome, EthosPopulationArchive, GenerationSelection, NomosDeploymentArtifacts,
-    NomosProjectionArchive, NomosSlotId, ProjectionOutcome, Rejection as NomosRejection,
-    Reply as NomosReply, Request as NomosRequest, SlotExpectation, SlotGeneration,
-    TransformSelector, encode_request,
+    EthosPopulationArchive, NomosSlotId, Rejection as NomosRejection, Reply as NomosReply,
+    Request as NomosRequest, TransformSelector, encode_request,
 };
-use slice_core_ethos::{
-    WholeEthos, WholeEthosAttributes, WholeEthosEnumeration, WholeEthosItem, WholeEthosNewtype,
-    WholeEthosTupleFields, WholeEthosTypeReference, WholeEthosVariant, WholeEthosVariantPayload,
-    WholeEthosVisibility, WholeEthosWrappedField,
-};
-use slice_core_logos::{LogosLanguage, LogosLanguageTypeIds, LogosLanguageWords};
+use slice_core_ethos::bootstrap::BootstrapArchiveStatus;
+use slice_core_logos::{LogosLanguage, LogosLanguageTypeIds, LogosLanguageWords, WholeLogos};
 use slice_core_nomos::{
-    MetaType, NameTreeProjectionVersion, NativeEvaluatedLogos, NativeEvaluatedTerm,
-    NomosFileManifest, NomosLoadError, NomosManifestFile, NomosManifestLoadError, NomosModulePath,
-    NomosSourcePath, TemplateFutureOutput, TemplateLandingShape, TemplateLanguage, TextualNomos,
-    TextualNomosMetaType, TextualNomosTypeIds, TextualNomosWords,
+    BootstrapSliceOneLowering, MetaType, NomosFileManifest, NomosLoadError, NomosManifestFile,
+    NomosManifestLoadError, NomosModulePath, NomosSourcePath, TemplateFutureOutput,
+    TemplateLandingShape, TemplateLanguage, TextualNomos, TextualNomosMetaType,
+    TextualNomosTypeIds, TextualNomosWords,
 };
 use slice_name_table::{LocalEncodedId, Name, OperationKey};
-use slice_protos::EncodedPopulation;
 use slice_sema_translator::{AUTHORITY_ROUTE, principal_for_unix_uid};
 use slice_signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, Reply, Request, SessionEpoch,
@@ -41,6 +33,8 @@ use slice_signal_sema_translator::{
     SealUniversal, TranslatorFrame, VocabularyEncodedId, VocabularyRoot, WritePrecondition,
 };
 use slice_structural_codec::{EncodedNameResolver, LandingShape};
+
+mod support;
 
 const SOURCE: &str = r#"{1}
 []
@@ -108,6 +102,7 @@ Public Invoke.WireAttributes Realize.name Private Realize.wrapped
 {}
 {}"#;
 const MANIFEST: &str = include_str!("../Cargo.toml");
+const FLAKE: &str = include_str!("../flake.nix");
 const PROCESS_STARTUP_TIMEOUT: Duration = Duration::from_secs(10);
 const PROCESS_IO_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -592,19 +587,6 @@ impl FixedNames {
         );
         names
     }
-
-    fn recursive_template_references(&self) -> Vec<VocabularyEncodedId> {
-        ["Clone", "rustfmt", "skip"]
-            .into_iter()
-            .map(|spelling| {
-                self.0
-                    .iter()
-                    .find(|(_, name)| name.as_str() == spelling)
-                    .map(|(identity, _)| identity.clone())
-                    .unwrap_or_else(|| panic!("missing recursive template name {spelling}"))
-            })
-            .collect()
-    }
 }
 
 impl EncodedNameResolver<VocabularyRoot> for FixedNames {
@@ -672,17 +654,21 @@ fn fixture_module() -> NomosModulePath {
 }
 
 fn file_manifest() -> NomosFileManifest {
-    NomosFileManifest(
-        source_path("entry.nomos"),
-        vec![
-            NomosManifestFile(source_path("attributes.nomos"), fixture_module(), vec![]),
-            NomosManifestFile(
-                source_path("entry.nomos"),
-                fixture_module(),
-                vec![source_path("attributes.nomos")],
-            ),
+    NomosFileManifest {
+        entry_point: source_path("entry.nomos"),
+        files: vec![
+            NomosManifestFile {
+                source: source_path("attributes.nomos"),
+                module: fixture_module(),
+                dependencies: vec![],
+            },
+            NomosManifestFile {
+                source: source_path("entry.nomos"),
+                module: fixture_module(),
+                dependencies: vec![source_path("attributes.nomos")],
+            },
         ],
-    )
+    }
 }
 
 fn assert_no_committed_receipt(socket: &Path, operation_key: [u8; 32]) {
@@ -703,333 +689,63 @@ fn assert_no_committed_receipt(socket: &Path, operation_key: [u8; 32]) {
     ));
 }
 
-fn recursive_ethos_population(fixed: &FixedNames) -> EthosPopulationArchive {
-    let grandchild = WholeEthosEnumeration::new(
-        encoded(&[310, 3]),
-        WholeEthosVisibility::Private,
-        WholeEthosAttributes::empty(),
-        vec![WholeEthosVariant::new(
-            encoded(&[310, 3, 1]),
-            WholeEthosAttributes::empty(),
-            WholeEthosVariantPayload::Unit,
-        )],
-    );
-    let child = WholeEthosEnumeration::new(
-        encoded(&[310, 2]),
-        WholeEthosVisibility::Private,
-        WholeEthosAttributes::empty(),
-        vec![
-            WholeEthosVariant::new(
-                encoded(&[310, 2, 1]),
-                WholeEthosAttributes::empty(),
-                WholeEthosVariantPayload::Unit,
-            ),
-            WholeEthosVariant::new(
-                encoded(&[310, 2, 2]),
-                WholeEthosAttributes::empty(),
-                WholeEthosVariantPayload::Tuple(
-                    WholeEthosTupleFields::new(vec![WholeEthosTypeReference::Identity(
-                        grandchild.name().clone(),
-                    )])
-                    .expect("one grandchild edge"),
-                ),
-            ),
-        ],
-    );
-    let leaf_newtype = WholeEthosNewtype::new(
-        encoded(&[310, 4]),
-        WholeEthosVisibility::Private,
-        WholeEthosAttributes::empty(),
-        WholeEthosWrappedField::new(
-            WholeEthosVisibility::Private,
-            WholeEthosTypeReference::Identity(encoded(&[399, 2])),
-        ),
-    );
-    let root = WholeEthosEnumeration::new(
-        encoded(&[310, 1]),
-        WholeEthosVisibility::Private,
-        WholeEthosAttributes::empty(),
-        vec![
-            WholeEthosVariant::new(
-                encoded(&[310, 1, 1]),
-                WholeEthosAttributes::empty(),
-                WholeEthosVariantPayload::Tuple(
-                    WholeEthosTupleFields::new(vec![
-                        WholeEthosTypeReference::Identity(child.name().clone()),
-                        WholeEthosTypeReference::Identity(leaf_newtype.name().clone()),
-                        WholeEthosTypeReference::Identity(encoded(&[399, 1])),
-                    ])
-                    .expect("child edge, non-enumeration leaf, and absent leaf"),
-                ),
-            ),
-            WholeEthosVariant::new(
-                encoded(&[310, 1, 2]),
-                WholeEthosAttributes::empty(),
-                WholeEthosVariantPayload::Unit,
-            ),
-        ],
-    );
-    let declarations = vec![
-        root.name().clone(),
-        root.variants()[0].name().clone(),
-        root.variants()[1].name().clone(),
-        child.name().clone(),
-        child.variants()[0].name().clone(),
-        child.variants()[1].name().clone(),
-        grandchild.name().clone(),
-        grandchild.variants()[0].name().clone(),
-        leaf_newtype.name().clone(),
-    ];
-    let expected_logos_declarations = declarations.clone();
-    let mut expected_logos_references = vec![
-        child.name().clone(),
-        grandchild.name().clone(),
-        leaf_newtype.name().clone(),
-        encoded(&[399, 1]),
-        encoded(&[399, 2]),
-    ];
-    expected_logos_references.extend(fixed.recursive_template_references());
-    let names = EngineEthosNameTree::try_new(
-        declarations,
-        Vec::new(),
-        Vec::new(),
-        expected_logos_declarations,
-        expected_logos_references,
-    )
-    .expect("complete recursive NameTree plan");
-    encode_ethos_population(
-        WholeEthos::new(vec![
-            WholeEthosItem::Enumeration(root),
-            WholeEthosItem::Enumeration(child),
-            WholeEthosItem::Enumeration(grandchild),
-            WholeEthosItem::Newtype(leaf_newtype),
-        ]),
-        names,
-    )
-    .expect("recursive Ethos population")
-}
-
-fn assert_recursive_output(reply: &NomosReply) -> Vec<u8> {
-    let NomosReply::Transformed(outcome) = reply else {
-        panic!("expected transformed recursive population, got {reply:?}")
-    };
-    type Population = EncodedPopulation<NativeEvaluatedLogos, EngineLogosNameTree>;
-    let restored = rkyv::from_bytes::<Population, rkyv::rancor::Error>(outcome.logos_population())
-        .expect("decode native recursive Logos population");
-    assert_eq!(restored.encoded_form().values().len(), 4);
-    let NativeEvaluatedTerm::Sequence(attributes) =
-        restored.encoded_form().values()[0].fields()[1].term()
-    else {
-        panic!("recursive enumeration attributes are a sequence")
-    };
-    let constructors = attributes
-        .iter()
-        .map(|attribute| {
-            let NativeEvaluatedTerm::Nested(attribute) = attribute else {
-                panic!("recursive attributes contain only attribute values")
-            };
-            attribute.constructor().local()
-        })
-        .collect::<Vec<_>>();
-    // Recursive descendants precede each parent; InsertAt places rustfmt.skip
-    // before the inherited child sequence and Clone remains the parent tail.
-    assert_eq!(constructors, vec![3, 3, 1, 3, 3, 1, 1, 1, 3, 1]);
+#[test]
+fn current_bootstrap_transform_succeeds_in_process_and_refuses_the_unarchived_wire() {
+    let assembly = support::assembly();
     assert_eq!(
-        restored.name_tree().declarations(),
-        &[
-            encoded(&[310, 1]),
-            encoded(&[310, 1, 1]),
-            encoded(&[310, 1, 2]),
-            encoded(&[310, 2]),
-            encoded(&[310, 2, 1]),
-            encoded(&[310, 2, 2]),
-            encoded(&[310, 3]),
-            encoded(&[310, 3, 1]),
-            encoded(&[310, 4]),
-        ]
+        assembly.reader().archive_status(),
+        BootstrapArchiveStatus::NotYetArchived
     );
-    outcome.logos_population().to_vec()
+
+    let logos = BootstrapSliceOneLowering::new()
+        .lower(assembly.reader(), assembly.transaction())
+        .expect("authority-verified bootstrap assembly transforms in process");
+    let archive = logos
+        .to_archive_bytes()
+        .expect("current Whole Logos result archives");
+    assert_eq!(
+        WholeLogos::from_archive_bytes(&archive).expect("current Whole Logos archive restores"),
+        logos
+    );
+
+    let directory = tempfile::tempdir().expect("isolated Nomos wire directory");
+    let socket = directory.path().join("nomos.sock");
+    let database = directory.path().join("nomos.sema");
+    let mut daemon = NomosDaemon::start(&socket, &database);
+    let reply = nomos_exchange(
+        &socket,
+        &NomosRequest::Transform {
+            selector: TransformSelector::Live(NomosSlotId::new(44)),
+            ethos: EthosPopulationArchive::try_new(vec![0x42])
+                .expect("wire carrier requires nonempty opaque bytes"),
+        },
+    );
+    assert_eq!(
+        reply,
+        NomosReply::Rejected(NomosRejection::EthosPopulationInvalid)
+    );
+    daemon.stop();
+
+    // primary-eyr.2 owns the future persisted wire/restart car. Until that
+    // archive exists, successful bootstrap transformation is in-process only.
 }
 
 #[test]
-fn authored_nomos_process_dependencies_pin_the_approved_producers() {
-    assert!(MANIFEST.contains("e4230f62b55fcf8543477a26d272862a63aa1fc3"));
-    assert!(MANIFEST.contains("1af71a9d0625a6404f81cd6fe8b6393ac0c9040f"));
-    assert!(MANIFEST.contains("58fd8036bffcb3cff6e27af4db25690764ecc768"));
-    assert!(MANIFEST.contains("6df830ab1ec9f315a5b50e40ffc393b48ea3d412"));
-    assert!(MANIFEST.contains("51c02c4a7b6f67d9dad095f11986085d7d65785b"));
-    assert!(MANIFEST.contains("0786fbe8caf27552afcdd5deb85bc82ec6088337"));
-}
-
-#[test]
-fn authored_nomos_deploys_transforms_advances_and_recovers_through_the_process() {
-    let directory = tempfile::tempdir().expect("isolated process directory");
-    let authority_socket = directory.path().join("sema-translator.sock");
-    let authority_database = directory.path().join("sema-translator.sema");
-    let mut authority = Daemon::start(&authority_socket, &authority_database);
-    let textual = textual(&logos());
-    let fixed = seed_recursive_template_vocabulary(&authority_socket);
-    let planned = textual
-        .plan_load(
-            SOURCE,
-            &fixed,
-            fixture_module(),
-            [44; 32],
-            expected(current(&authority_socket)),
-        )
-        .expect("allocation-free authored Nomos plan");
-    let sealed = exchange(
-        &authority_socket,
-        authority_request(AuthorityOperation::SealUniversal(planned.request().clone())),
-        true,
-    )
-    .0;
-    match sealed {
-        AuthorityReply::Committed(CommittedReceipt::SealUniversal(_)) => {}
-        other => panic!("expected committed authored Nomos seal, got {other:?}"),
+fn current_process_dependencies_pin_the_published_producers() {
+    for revision in [
+        "2ccb200894056abbaae70b10a070c427fa4fdf4c",
+        "bdcf54021e880f75ab693d00e3707478ca7de487",
+        "4758e8db3c72e7c84c30c1a0b597b6d9ed65d35d",
+        "4675e5ddfdd0d24144498ec9b7d2e5b9cb422249",
+        "9f62eb444d7ae257b34c740e1bbad8cca079a13b",
+        "3a26cb43f8ce7f9fe85da64d19aa55aa662943ce",
+        "0786fbe8caf27552afcdd5deb85bc82ec6088337",
+    ] {
+        assert!(
+            MANIFEST.contains(revision) || FLAKE.contains(revision),
+            "missing exact pin {revision}"
+        );
     }
-    let durable = exchange(
-        &authority_socket,
-        authority_request(AuthorityOperation::Read(ReadOperation::CommittedReceipt {
-            operation_key: OperationKey::new([44; 32]),
-        })),
-        false,
-    )
-    .0;
-    let loaded = textual
-        .complete_load(&planned, &durable, &fixed)
-        .expect("materialize from durable authority receipt");
-    let ethos = recursive_ethos_population(&fixed);
-    authority.stop();
-
-    let population = loaded.population();
-    let initial = population
-        .seal(NameTreeProjectionVersion::initial())
-        .expect("initial sealed population");
-    let successor = population
-        .advance_projection(&initial)
-        .expect("successor projection");
-    let identity = initial.capsule().content_identity();
-    let initial_artifacts =
-        NomosDeploymentArtifacts::from_population(&initial).expect("initial deployment artifacts");
-    let successor_artifacts = NomosDeploymentArtifacts::from_population(&successor)
-        .expect("successor deployment artifacts");
-
-    let nomos_socket = directory.path().join("nomos.sock");
-    let nomos_database = directory.path().join("nomos.sema");
-    let slot = NomosSlotId::new(44);
-    let mut nomos = NomosDaemon::start(&nomos_socket, &nomos_database);
-    let deployed = nomos_exchange(
-        &nomos_socket,
-        &NomosRequest::Deploy {
-            slot,
-            expected: SlotExpectation::Empty,
-            artifacts: initial_artifacts.clone(),
-            selection: GenerationSelection::enriched(),
-        },
-    );
-    assert!(matches!(
-        deployed,
-        NomosReply::Deployed(DeployOutcome::FreshDeployed {
-            identity: deployed_identity,
-            generation,
-            committed_at,
-            ..
-        }) if deployed_identity == identity
-            && generation == SlotGeneration::initial()
-            && committed_at.commit_sequence() == 1
-    ));
-
-    let transformed = nomos_exchange(
-        &nomos_socket,
-        &NomosRequest::Transform {
-            selector: TransformSelector::Live(slot),
-            ethos: ethos.clone(),
-        },
-    );
-    let initial_output = assert_recursive_output(&transformed);
-    assert!(matches!(
-        transformed,
-        NomosReply::Transformed(ref outcome)
-            if outcome.snapshot().identity() == identity
-                && outcome.snapshot().generation() == SlotGeneration::initial()
-                && outcome.snapshot().projection_version()
-                    == NameTreeProjectionVersion::initial()
-                && !outcome.logos_population().is_empty()
-    ));
-
-    let advanced = nomos_exchange(
-        &nomos_socket,
-        &NomosRequest::AdvanceProjection {
-            capsule: identity,
-            expected_previous_version: NameTreeProjectionVersion::initial(),
-            projection: NomosProjectionArchive::from_projection(successor.projection())
-                .expect("successor projection archive"),
-            translator_receipt: None,
-        },
-    );
-    assert!(matches!(
-        advanced,
-        NomosReply::ProjectionAdvanced(ProjectionOutcome::Advanced {
-            previous_version,
-            version,
-            committed_at,
-            ..
-        }) if previous_version == NameTreeProjectionVersion::initial()
-            && version == NameTreeProjectionVersion::new(1)
-            && committed_at.commit_sequence() == 2
-    ));
-
-    nomos.stop();
-    let mut recovered = NomosDaemon::start(&nomos_socket, &nomos_database);
-    let recovered_transform = nomos_exchange(
-        &nomos_socket,
-        &NomosRequest::Transform {
-            selector: TransformSelector::Live(slot),
-            ethos,
-        },
-    );
-    assert!(matches!(
-        recovered_transform,
-        NomosReply::Transformed(ref outcome)
-            if outcome.snapshot().identity() == identity
-                && outcome.snapshot().generation() == SlotGeneration::initial()
-                && outcome.snapshot().projection_version() == NameTreeProjectionVersion::new(1)
-    ));
-    let recovered_output = assert_recursive_output(&recovered_transform);
-    assert_eq!(recovered_output, initial_output);
-
-    let stale = nomos_exchange(
-        &nomos_socket,
-        &NomosRequest::Deploy {
-            slot,
-            expected: SlotExpectation::Generation(SlotGeneration::new(999)),
-            artifacts: initial_artifacts,
-            selection: GenerationSelection::enriched(),
-        },
-    );
-    assert_eq!(stale, NomosReply::Rejected(NomosRejection::ProjectionStale));
-    let current = nomos_exchange(
-        &nomos_socket,
-        &NomosRequest::Deploy {
-            slot,
-            expected: SlotExpectation::Generation(SlotGeneration::new(999)),
-            artifacts: successor_artifacts,
-            selection: GenerationSelection::enriched(),
-        },
-    );
-    assert!(matches!(
-        current,
-        NomosReply::Deployed(DeployOutcome::AlreadyCurrent {
-            identity: current_identity,
-            generation,
-            observed_at,
-            ..
-        }) if current_identity == identity
-            && generation == SlotGeneration::initial()
-            && observed_at.commit_sequence() == 2
-    ));
-    recovered.stop();
 }
 
 #[test]
@@ -1245,14 +961,14 @@ fn authored_nomos_manifest_is_one_process_request_and_graph_failures_leave_no_re
         EXTERNAL_INVOKE_SOURCE,
     )
     .expect("write external Invoke source");
-    let external_invoke = NomosFileManifest(
-        source_path("external-invoke.nomos"),
-        vec![NomosManifestFile(
-            source_path("external-invoke.nomos"),
-            fixture_module(),
-            vec![],
-        )],
-    );
+    let external_invoke = NomosFileManifest {
+        entry_point: source_path("external-invoke.nomos"),
+        files: vec![NomosManifestFile {
+            source: source_path("external-invoke.nomos"),
+            module: fixture_module(),
+            dependencies: vec![],
+        }],
+    };
     // [not-understood-by-psyche, Entry 7, NomosTrainAddendum-2026-07-30]
     // Authority already contains fixture/WireAttributes, but the later manifest
     // does not select that declaration into its self-contained v1 package.
@@ -1271,14 +987,14 @@ fn authored_nomos_manifest_is_one_process_request_and_graph_failures_leave_no_re
     assert_eq!(current(&socket), before_refusals);
     assert_no_committed_receipt(&socket, [55; 32]);
 
-    let missing = NomosFileManifest(
-        source_path("entry.nomos"),
-        vec![NomosManifestFile(
-            source_path("entry.nomos"),
-            fixture_module(),
-            vec![source_path("missing.nomos")],
-        )],
-    );
+    let missing = NomosFileManifest {
+        entry_point: source_path("entry.nomos"),
+        files: vec![NomosManifestFile {
+            source: source_path("entry.nomos"),
+            module: fixture_module(),
+            dependencies: vec![source_path("missing.nomos")],
+        }],
+    };
     assert!(matches!(
         textual.plan_file_population(
             &source_root,
@@ -1292,21 +1008,21 @@ fn authored_nomos_manifest_is_one_process_request_and_graph_failures_leave_no_re
     assert_eq!(current(&socket), before_refusals);
     assert_no_committed_receipt(&socket, [52; 32]);
 
-    let cyclic = NomosFileManifest(
-        source_path("entry.nomos"),
-        vec![
-            NomosManifestFile(
-                source_path("entry.nomos"),
-                fixture_module(),
-                vec![source_path("attributes.nomos")],
-            ),
-            NomosManifestFile(
-                source_path("attributes.nomos"),
-                fixture_module(),
-                vec![source_path("entry.nomos")],
-            ),
+    let cyclic = NomosFileManifest {
+        entry_point: source_path("entry.nomos"),
+        files: vec![
+            NomosManifestFile {
+                source: source_path("entry.nomos"),
+                module: fixture_module(),
+                dependencies: vec![source_path("attributes.nomos")],
+            },
+            NomosManifestFile {
+                source: source_path("attributes.nomos"),
+                module: fixture_module(),
+                dependencies: vec![source_path("entry.nomos")],
+            },
         ],
-    );
+    };
     assert!(matches!(
         textual.plan_file_population(
             &source_root,
@@ -1327,14 +1043,14 @@ fn authored_nomos_manifest_is_one_process_request_and_graph_failures_leave_no_re
         source_root.join("escape.nomos"),
     )
     .expect("create source-root escape");
-    let escaping = NomosFileManifest(
-        source_path("escape.nomos"),
-        vec![NomosManifestFile(
-            source_path("escape.nomos"),
-            fixture_module(),
-            vec![],
-        )],
-    );
+    let escaping = NomosFileManifest {
+        entry_point: source_path("escape.nomos"),
+        files: vec![NomosManifestFile {
+            source: source_path("escape.nomos"),
+            module: fixture_module(),
+            dependencies: vec![],
+        }],
+    };
     assert!(matches!(
         textual.plan_file_population(
             &source_root,
