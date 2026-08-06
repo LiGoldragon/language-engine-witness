@@ -1,6 +1,6 @@
 [package]
 name="language-engine-witness"
-version="0.24.0"
+version="0.25.0"
 edition="2024"
 rust-version="1.89"
 license="MIT OR Apache-2.0"
@@ -8,7 +8,7 @@ repository="https://github.com/LiGoldragon/language-engine-witness"
 description="Process-level acceptance witness for the minimal language engine"
 autotests=false
 [dependencies]
-signal-domain={git="https://github.com/LiGoldragon/signal-domain.git",rev="af7efa0c427421e89fdb3b9e621f66c43ef4c298"}
+signal-domain={git="https://github.com/LiGoldragon/signal-domain.git",rev="39d2313c821b0ed7a8b8b646bb081c409d10dcb4"}
 [dev-dependencies]
 tempfile="3"
 slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="427fd74a8217f557cfabdfe0ff23b784c855bf85"}
