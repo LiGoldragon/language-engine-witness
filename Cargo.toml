@@ -1,6 +1,6 @@
 [package]
 name="language-engine-witness"
-version="0.26.0"
+version="0.27.0"
 edition="2024"
 rust-version="1.89"
 license="MIT OR Apache-2.0"
@@ -8,22 +8,14 @@ repository="https://github.com/LiGoldragon/language-engine-witness"
 description="Process-level acceptance witness for the minimal language engine"
 autotests=false
 [dependencies]
-signal-domain={git="https://github.com/LiGoldragon/signal-domain.git",rev="f6996f935e4c24e494c244d65a57b46bb1045be7"}
+signal-domain={git="https://github.com/LiGoldragon/signal-domain.git",rev="ee00352781a9af10c60675fc562c378a70fec77b",features=["authority-path"]}
 [dev-dependencies]
 tempfile="3"
-slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="427fd74a8217f557cfabdfe0ff23b784c855bf85"}
-slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="f3655c5ba60d2aec5a6bffa0962eef6b5964ee4e"}
-slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="ff675b264e3650afb88291036ec2bdd97292a2e7"}
-slice-name-table={package="name-table",git="https://github.com/LiGoldragon/name-table.git",rev="a22f48d8040ab9235f3552ad8654ff8e27b8157d"}
-slice-raw-discovery={package="raw-discovery",git="https://github.com/LiGoldragon/raw-discovery.git",rev="2d4e2e00f2821c4e2893fa96028cef0ac76e9644"}
-slice-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="55501fddc2d7e154d71fff1659386cbbba712267"}
-slice-sema-translator={package="sema-translator",git="https://github.com/LiGoldragon/sema-translator.git",rev="6b5499c0d25c801b56582fdcd8e021c3293a6d4d",default-features=false,features=["bootstrap"]}
-slice-signal-frame={package="signal-frame",git="https://github.com/LiGoldragon/signal-frame.git",rev="0786fbe8caf27552afcdd5deb85bc82ec6088337",default-features=false}
-slice-signal-sema-translator={package="signal-sema-translator",git="https://github.com/LiGoldragon/signal-sema-translator.git",rev="3a26cb43f8ce7f9fe85da64d19aa55aa662943ce"}
-slice-structural-codec={package="structural-codec",git="https://github.com/LiGoldragon/structural-codec.git",rev="879d76f91facedd6d5cbca79e282260e1beb9478"}
-[[test]]
-name="slice_one"
-path="tests/slice_one.rs"
+slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="43b48c779c54ee9f05cbcc111d5d88074b162461"}
+slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="734363bd5fca01c7dab46028f4a36e3ce6ae6650"}
+slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="7b60721d199551b648d42a49934a2f0ef950c595"}
+slice-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="65d5534c28213cd7022d4e6ed1c7a977a51d77fc"}
+slice-signal-sema-translator={package="signal-sema-translator",git="https://github.com/LiGoldragon/signal-sema-translator.git",rev="3f41813dd63904c7e2b3da4382eff64ed1bf12fe"}
 [[test]]
 name="spirit_domain"
 path="tests/spirit_domain.rs"

@@ -294,6 +294,6 @@ fn fixture_and_runtime_type_share_the_exact_published_source() {
     assert!(CARGO_MANIFEST.contains("signal-domain"));
     assert!(CARGO_MANIFEST.contains(SIGNAL_DOMAIN_REVISION));
     assert_eq!(CARGO_LOCK.matches("name = \"schema-rust\"").count(), 1);
-    assert!(CARGO_LOCK.contains("9e36587c85bd69357e9042729ba2df0052799756"));
+    assert!(CARGO_LOCK.contains("ce5fd51ab7a50aeb02a8c308f246d54b5db2dc22"));
     assert!(!CARGO_LOCK.contains("name = \"schema-language\""));
 }
