@@ -140,17 +140,17 @@
     "signal-domain-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1786007353,
-        "narHash": "sha256-P/e7Sv7xZN6k2dgAE2NmlPQon8SIAenYFQY9THGoroM=",
+        "lastModified": 1786012716,
+        "narHash": "sha256-/EoR3IMp9pLAKlI0mJq1wC4eAHbARvbs8yG1NYd8Ovc=",
         "owner": "LiGoldragon",
         "repo": "signal-domain",
-        "rev": "fc07af4e0c8c70a8a0d083d400bf7ba0df9dae76",
+        "rev": "af7efa0c427421e89fdb3b9e621f66c43ef4c298",
         "type": "github"
       },
       "original": {
         "owner": "LiGoldragon",
         "repo": "signal-domain",
-        "rev": "fc07af4e0c8c70a8a0d083d400bf7ba0df9dae76",
+        "rev": "af7efa0c427421e89fdb3b9e621f66c43ef4c298",
         "type": "github"
       }
     },

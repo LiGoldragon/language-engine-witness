@@ -9,7 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     signal-domain-source = {
-      url = "github:LiGoldragon/signal-domain/fc07af4e0c8c70a8a0d083d400bf7ba0df9dae76";
+      url = "github:LiGoldragon/signal-domain/af7efa0c427421e89fdb3b9e621f66c43ef4c298";
       flake = false;
     };
   };

@@ -548,12 +548,12 @@ fn incomplete_projection_refuses_without_partial_rust() {
 fn vertical_slice_pins_the_published_bootstrap_train() {
     for revision in [
         "2d4e2e00f2821c4e2893fa96028cef0ac76e9644",
-        "413e3744569ca237e837a1fd57d9ba6ad6adc3de",
-        "249ed6ac5b8a3a84fee5884bcb35b929f07e9166",
-        "abee4036fbeb58c767ef7dc3489804e2afd5c6e1",
-        "a5e9aeeed90445a7df57ee1c4fda8e4be761b985",
-        "250e728fa9e5a02e3c9a6d4f0cfee0683863df83",
-        "bc8410dfe4d449cc0e820a2c5b4d44496ad92acd",
+        "879d76f91facedd6d5cbca79e282260e1beb9478",
+        "427fd74a8217f557cfabdfe0ff23b784c855bf85",
+        "f3655c5ba60d2aec5a6bffa0962eef6b5964ee4e",
+        "ff675b264e3650afb88291036ec2bdd97292a2e7",
+        "55501fddc2d7e154d71fff1659386cbbba712267",
+        "6b5499c0d25c801b56582fdcd8e021c3293a6d4d",
     ] {
         assert!(MANIFEST.contains(revision), "missing producer {revision}");
     }
