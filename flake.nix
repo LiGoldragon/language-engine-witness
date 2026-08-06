@@ -8,24 +8,13 @@
       url = "github:LiGoldragon/rust-build";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nomos-engine = {
-      url = "github:LiGoldragon/nomos-engine/2ccb200894056abbaae70b10a070c427fa4fdf4c";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.rust-build.follows = "rust-build";
-    };
-    sema-translator = {
-      url = "github:LiGoldragon/sema-translator/4675e5ddfdd0d24144498ec9b7d2e5b9cb422249";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.rust-build.follows = "rust-build";
-    };
     signal-domain-source = {
-      url = "github:LiGoldragon/signal-domain/6f7c1352602581cb6cb82f507fe573890c6ffa56";
+      url = "github:LiGoldragon/signal-domain/fc07af4e0c8c70a8a0d083d400bf7ba0df9dae76";
       flake = false;
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-build, nomos-engine, sema-translator, signal-domain-source }:
+  outputs = { self, nixpkgs, flake-utils, rust-build, signal-domain-source }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -38,21 +27,12 @@
           strictDeps = true;
         };
         cargoArtifacts = craneLib.buildDepsOnly commonArguments;
-        processTestArguments = {
-          nativeBuildInputs = [
-            nomos-engine.packages.${system}.default
-            sema-translator.packages.${system}.default
-          ];
-          NOMOS_ENGINE_BIN = "${nomos-engine.packages.${system}.default}/bin/nomos-engine";
-          NOMOS_GENERATOR_BIN = "${nomos-engine.packages.${system}.default}/bin/nomos-generate";
-          SEMA_TRANSLATOR_BIN = "${sema-translator.packages.${system}.default}/bin/sema-translator-daemon";
-        };
       in
       {
-        packages.default = craneLib.buildPackage (commonArguments // { inherit cargoArtifacts; } // processTestArguments);
+        packages.default = craneLib.buildPackage (commonArguments // { inherit cargoArtifacts; });
         checks = {
           build = craneLib.cargoBuild (commonArguments // { inherit cargoArtifacts; });
-          test = craneLib.cargoTest (commonArguments // { inherit cargoArtifacts; } // processTestArguments);
+          test = craneLib.cargoTest (commonArguments // { inherit cargoArtifacts; });
           doc = craneLib.cargoDoc (commonArguments // {
             inherit cargoArtifacts;
             RUSTDOCFLAGS = "-D warnings";

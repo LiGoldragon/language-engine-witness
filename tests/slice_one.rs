@@ -549,11 +549,11 @@ fn vertical_slice_pins_the_published_bootstrap_train() {
     for revision in [
         "2d4e2e00f2821c4e2893fa96028cef0ac76e9644",
         "413e3744569ca237e837a1fd57d9ba6ad6adc3de",
-        "7a1384874f3747de97c6ccbb4ae6fa2149b27330",
+        "249ed6ac5b8a3a84fee5884bcb35b929f07e9166",
         "abee4036fbeb58c767ef7dc3489804e2afd5c6e1",
-        "4758e8db3c72e7c84c30c1a0b597b6d9ed65d35d",
+        "a5e9aeeed90445a7df57ee1c4fda8e4be761b985",
         "250e728fa9e5a02e3c9a6d4f0cfee0683863df83",
-        "4675e5ddfdd0d24144498ec9b7d2e5b9cb422249",
+        "bc8410dfe4d449cc0e820a2c5b4d44496ad92acd",
     ] {
         assert!(MANIFEST.contains(revision), "missing producer {revision}");
     }

@@ -21,7 +21,7 @@ use slice_signal_sema_translator::{VocabularyEncodedId, VocabularyRoot};
 use slice_structural_codec::EncodedNameResolver;
 
 pub const SOURCE: &str = include_str!("../fixtures/spirit-domain.ethos");
-pub const SIGNAL_DOMAIN_REVISION: &str = "6f7c1352602581cb6cb82f507fe573890c6ffa56";
+pub const SIGNAL_DOMAIN_REVISION: &str = "fc07af4e0c8c70a8a0d083d400bf7ba0df9dae76";
 
 const MODULE_PATH: &[&str] = &["signal_domain", "domain"];
 
