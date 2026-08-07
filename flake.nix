@@ -8,13 +8,9 @@
       url = "github:LiGoldragon/rust-build";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    signal-domain-source = {
-      url = "github:LiGoldragon/signal-domain/ee00352781a9af10c60675fc562c378a70fec77b";
-      flake = false;
-    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-build, signal-domain-source }:
+  outputs = { self, nixpkgs, flake-utils, rust-build }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -42,10 +38,6 @@
             inherit cargoArtifacts;
             cargoClippyExtraArgs = "--all-targets -- -D warnings";
           });
-          spirit-domain-inventory = pkgs.runCommand "spirit-domain-inventory" {} ''
-            cmp ${signal-domain-source}/schema/domain.schema ${./tests/fixtures/spirit-domain.ethos}
-            touch $out
-          '';
         };
         devShells.default = pkgs.mkShell {
           name = "language-engine-witness";

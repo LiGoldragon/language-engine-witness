@@ -7,19 +7,6 @@ license="MIT OR Apache-2.0"
 repository="https://github.com/LiGoldragon/language-engine-witness"
 description="Process-level acceptance witness for the minimal language engine"
 autotests=false
-[dependencies]
-signal-domain={git="https://github.com/LiGoldragon/signal-domain.git",rev="ee00352781a9af10c60675fc562c378a70fec77b",features=["authority-path"]}
-[dev-dependencies]
-tempfile="3"
-slice-core-ethos={package="core-ethos",git="https://github.com/LiGoldragon/core-ethos.git",rev="43b48c779c54ee9f05cbcc111d5d88074b162461"}
-slice-core-logos={package="core-logos",git="https://github.com/LiGoldragon/core-logos.git",rev="734363bd5fca01c7dab46028f4a36e3ce6ae6650"}
-slice-core-nomos={package="core-nomos",git="https://github.com/LiGoldragon/core-nomos.git",rev="7b60721d199551b648d42a49934a2f0ef950c595"}
-slice-rust-logos={package="rust-logos",git="https://github.com/LiGoldragon/rust-logos.git",rev="65d5534c28213cd7022d4e6ed1c7a977a51d77fc"}
-slice-signal-sema-translator={package="signal-sema-translator",git="https://github.com/LiGoldragon/signal-sema-translator.git",rev="3f41813dd63904c7e2b3da4382eff64ed1bf12fe"}
-[[test]]
-name="spirit_domain"
-path="tests/spirit_domain.rs"
-[features]
-nota-text=[]
+
 [lints.rust]
 unsafe_code="forbid"

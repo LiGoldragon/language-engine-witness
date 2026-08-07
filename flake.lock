@@ -93,8 +93,7 @@
       "inputs": {
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs",
-        "rust-build": "rust-build",
-        "signal-domain-source": "signal-domain-source"
+        "rust-build": "rust-build"
       }
     },
     "rust-analyzer-src": {
@@ -134,23 +133,6 @@
       "original": {
         "owner": "LiGoldragon",
         "repo": "rust-build",
-        "type": "github"
-      }
-    },
-    "signal-domain-source": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1786042498,
-        "narHash": "sha256-CQCcgnr2Y6HZRGHpVjWIqnPzyLp7OdxMgiGlxoB3ZsU=",
-        "owner": "LiGoldragon",
-        "repo": "signal-domain",
-        "rev": "ee00352781a9af10c60675fc562c378a70fec77b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "LiGoldragon",
-        "repo": "signal-domain",
-        "rev": "ee00352781a9af10c60675fc562c378a70fec77b",
         "type": "github"
       }
     },

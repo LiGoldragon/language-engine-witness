@@ -1,5 +1,5 @@
-//! Process-level acceptance witnesses for the current language-engine boundaries.
+//! Process-level acceptance witness boundary.
 //!
-//! Production behavior lives in the component crates. The repository's
-//! integration tests exercise their encoded contracts without manufacturing a
-//! second Rust model of any schema.
+//! The prior Signal-domain fixture constructed and observed retired
+//! caller-owned authority vocabulary. It is absent until hqu.30 installs a
+//! durable authority product suitable for a real witness.
